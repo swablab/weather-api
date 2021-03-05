@@ -1,0 +1,33 @@
+package storage
+
+import (
+	"math/rand"
+	"time"
+)
+
+//WeatherStorage interface for different storage-implementations of weather data
+type WeatherStorage interface {
+	Save(WeatherData) error
+	Close() error
+}
+
+//WeatherData type
+type WeatherData struct {
+	Humidity    float64   `json:"humidity"`
+	Preasure    float64   `json:"airPreasure"`
+	Temperature float64   `json:"temperature"`
+	Location    string    `json:"location"`
+	TimeStamp   time.Time `json:"timestamp"`
+}
+
+//NewRandomWeatherData creates random WeatherData with given Location
+func NewRandomWeatherData(location string) WeatherData {
+	rand.Seed(time.Now().UnixNano())
+	var data WeatherData
+	data.Humidity = rand.Float64() * 100
+	data.Preasure = rand.Float64()*80 + 960
+	data.Temperature = rand.Float64()*40 - 5
+	data.Location = location
+	data.TimeStamp = time.Now()
+	return data
+}
