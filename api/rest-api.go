@@ -40,7 +40,6 @@ func (api *weatherRestApi) handleRequests() *mux.Router {
 	router.HandleFunc("/random", api.randomWeatherHandler)
 	router.HandleFunc("/randomlist", api.randomWeatherListHandler)
 	router.HandleFunc("/addData", api.addDataHandler)
-
 	return router
 }
 
@@ -62,6 +61,10 @@ func (api *weatherRestApi) randomWeatherListHandler(w http.ResponseWriter, r *ht
 }
 
 func (api *weatherRestApi) addDataHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "only POST-Method allowed", http.StatusMethodNotAllowed)
+	}
+
 	var data storage.WeatherData
 	err := json.NewDecoder(r.Body).Decode(&data)
 	if err != nil {
