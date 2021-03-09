@@ -32,7 +32,7 @@ func (storage *influxStorage) Save(data WeatherData) error {
 	fields := map[string]interface{}{
 		"temperature": data.Temperature,
 		"humidity":    data.Humidity,
-		"preasure":    data.Preasure}
+		"pressure":    data.Pressure}
 
 	datapoint := influxdb2.NewPoint("new2",
 		tags,

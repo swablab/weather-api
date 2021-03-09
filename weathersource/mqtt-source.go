@@ -59,7 +59,7 @@ func (source *mqttWeatherSource) mqttMessageHandler() mqtt.MessageHandler {
 		}
 
 		if strings.HasSuffix(msg.Topic(), "pressure") {
-			source.lastData.Preasure, _ = strconv.ParseFloat(string(msg.Payload()), 64)
+			source.lastData.Pressure, _ = strconv.ParseFloat(string(msg.Payload()), 64)
 			source.lastData.TimeStamp = time.Now()
 		}
 		if strings.HasSuffix(msg.Topic(), "temp") {

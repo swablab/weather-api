@@ -14,7 +14,7 @@ type WeatherStorage interface {
 //WeatherData type
 type WeatherData struct {
 	Humidity    float64   `json:"humidity"`
-	Preasure    float64   `json:"airPreasure"`
+	Pressure    float64   `json:"airPressure"`
 	Temperature float64   `json:"temperature"`
 	Location    string    `json:"location"`
 	TimeStamp   time.Time `json:"timestamp"`
@@ -25,7 +25,7 @@ func NewRandomWeatherData(location string) WeatherData {
 	rand.Seed(time.Now().UnixNano())
 	var data WeatherData
 	data.Humidity = rand.Float64() * 100
-	data.Preasure = rand.Float64()*80 + 960
+	data.Pressure = rand.Float64()*80 + 960
 	data.Temperature = rand.Float64()*40 - 5
 	data.Location = location
 	data.TimeStamp = time.Now()
