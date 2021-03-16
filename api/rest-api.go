@@ -40,7 +40,18 @@ func (api *weatherRestApi) handleRequests() *mux.Router {
 	router.HandleFunc("/random", api.randomWeatherHandler)
 	router.HandleFunc("/randomlist", api.randomWeatherListHandler)
 	router.HandleFunc("/addData", api.addDataHandler)
+	router.HandleFunc("/getData", api.getData)
 	return router
+}
+
+func (api *weatherRestApi) getData(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("content-type", "application/json")
+	data, err := api.weaterStorage.GetData()
+	if err != nil {
+		http.Error(w, "", http.StatusBadRequest)
+		return
+	}
+	json.NewEncoder(w).Encode(data)
 }
 
 func (api *weatherRestApi) randomWeatherHandler(w http.ResponseWriter, r *http.Request) {
