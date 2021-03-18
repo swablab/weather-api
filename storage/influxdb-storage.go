@@ -38,7 +38,8 @@ func (storage *influxStorage) Save(data WeatherData) error {
 	fields := map[string]interface{}{
 		"temperature": data.Temperature,
 		"humidity":    data.Humidity,
-		"pressure":    data.Pressure}
+		"pressure":    data.Pressure,
+		"co2level":    data.CO2Level}
 
 	datapoint := influxdb2.NewPoint(storage.measurement,
 		tags,
@@ -87,6 +88,9 @@ func (storage *influxStorage) executeFluxQuery(query string) ([]*WeatherData, er
 		}
 		if result.Record().Field() == "humidity" {
 			data.Humidity = result.Record().Value().(float64)
+		}
+		if result.Record().Field() == "co2level" {
+			data.CO2Level = result.Record().Value().(float64)
 		}
 
 		if !contained {

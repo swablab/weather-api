@@ -17,6 +17,7 @@ type WeatherData struct {
 	Humidity    float64   `json:"humidity"`
 	Pressure    float64   `json:"airPressure"`
 	Temperature float64   `json:"temperature"`
+	CO2Level    float64   `json:"co2level"`
 	Location    string    `json:"location"`
 	TimeStamp   time.Time `json:"timestamp"`
 }
@@ -28,6 +29,7 @@ func NewRandomWeatherData(location string) WeatherData {
 	data.Humidity = rand.Float64() * 100
 	data.Pressure = rand.Float64()*80 + 960
 	data.Temperature = rand.Float64()*40 - 5
+	data.CO2Level = rand.Float64()*50 + 375
 	data.Location = location
 	data.TimeStamp = time.Now()
 	return data

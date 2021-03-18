@@ -70,6 +70,10 @@ func (source *mqttWeatherSource) mqttMessageHandler() mqtt.MessageHandler {
 			source.lastData.Temperature, _ = strconv.ParseFloat(string(msg.Payload()), 64)
 			source.lastData.TimeStamp = time.Now()
 		}
+		if strings.HasSuffix(msg.Topic(), "co2level") {
+			source.lastData.CO2Level, _ = strconv.ParseFloat(string(msg.Payload()), 64)
+			source.lastData.TimeStamp = time.Now()
+		}
 	}
 }
 
