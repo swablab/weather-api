@@ -7,6 +7,7 @@ import (
 	"weather-data/storage"
 	"weather-data/weathersource"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
 
@@ -41,6 +42,7 @@ func (api *weatherRestApi) handleRequests() *mux.Router {
 	router.HandleFunc("/randomlist", api.randomWeatherListHandler)
 	router.HandleFunc("/addData", api.addDataHandler)
 	router.HandleFunc("/getData", api.getData)
+	router.HandleFunc("/registerWeatherSensor/{name}", api.registerWeatherSensor)
 	return router
 }
 
@@ -74,6 +76,7 @@ func (api *weatherRestApi) randomWeatherListHandler(w http.ResponseWriter, r *ht
 func (api *weatherRestApi) addDataHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "only POST-Method allowed", http.StatusMethodNotAllowed)
+		return
 	}
 
 	var data storage.WeatherData
@@ -87,6 +90,25 @@ func (api *weatherRestApi) addDataHandler(w http.ResponseWriter, r *http.Request
 
 func (api *weatherRestApi) homePageHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Welcome to the Weather API!")
+}
+
+func (api *weatherRestApi) registerWeatherSensor(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "only POST-Method allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Add("content-type", "application/json")
+
+	vars := mux.Vars(r)
+	key := vars["name"]
+
+	registration := SensorRegistration{
+		Name: key,
+		Id:   uuid.New(),
+	}
+
+	json.NewEncoder(w).Encode(registration)
 }
 
 //AddNewWeatherDataCallback adds a new callbackMethod for incoming weather data
