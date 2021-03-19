@@ -44,11 +44,11 @@ func main() {
 	//setup a API -> REST
 	var weatherAPI api.WeatherAPI
 	weatherAPI = api.NewRestAPI(":10000", weatherStorage)
+	defer weatherAPI.Close()
 
 	err = weatherAPI.Start()
 	if err != nil {
 		os.Exit(1)
 	}
-	defer weatherAPI.Close()
 
 }
