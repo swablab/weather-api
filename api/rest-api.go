@@ -87,7 +87,11 @@ func (api *weatherRestApi) addDataHandler(w http.ResponseWriter, r *http.Request
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	api.addNewWeatherData(data)
+
+	err = api.addNewWeatherData(data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
 }
 
 func (api *weatherRestApi) homePageHandler(w http.ResponseWriter, r *http.Request) {
@@ -119,6 +123,6 @@ func (api *weatherRestApi) AddNewWeatherDataCallback(callback weathersource.NewW
 	api.weatherSource.AddNewWeatherDataCallback(callback)
 }
 
-func (api *weatherRestApi) addNewWeatherData(weatherData storage.WeatherData) {
-	api.weatherSource.NewWeatherData(weatherData)
+func (api *weatherRestApi) addNewWeatherData(weatherData storage.WeatherData) error {
+	return api.weatherSource.NewWeatherData(weatherData)
 }

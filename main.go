@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"weather-data/api"
 	"weather-data/config"
@@ -34,8 +35,7 @@ func main() {
 	//setup new weatherData source -> mqtt
 	weatherSource, err = weathersource.NewMqttSource(
 		config.GetMqttUrl(),
-		config.GetMqttTopic(),
-		sensorRegistry)
+		config.GetMqttTopic())
 
 	if err != nil {
 		os.Exit(1)
@@ -54,6 +54,10 @@ func main() {
 	}
 }
 
-func handleNewWeatherData(wd storage.WeatherData) {
+func handleNewWeatherData(wd storage.WeatherData) error {
+	if !config.AllowUnregisteredSensors() && !sensorRegistry.ExistSensorId(wd.SensorId) {
+		return errors.New("sensor have to be registered")
+	}
 	weatherStorage.Save(wd)
+	return nil
 }

@@ -3,7 +3,7 @@ package weathersource
 import "weather-data/storage"
 
 //NewWeatherDataCallbackFunc Function-Signature for new weather data callback function
-type NewWeatherDataCallbackFunc func(storage.WeatherData)
+type NewWeatherDataCallbackFunc func(storage.WeatherData) error
 
 //WeatherSource is the interface for different weather-source implementations
 type WeatherSource interface {
@@ -22,8 +22,12 @@ func (source *WeatherSourceBase) AddNewWeatherDataCallback(callback NewWeatherDa
 }
 
 //NewWeatherData executes all newWeatherDataCallbackFuncs for this datapoint
-func (source *WeatherSourceBase) NewWeatherData(datapoint storage.WeatherData) {
+func (source *WeatherSourceBase) NewWeatherData(datapoint storage.WeatherData) error {
 	for _, callback := range source.newWeatherDataCallbackFuncs {
-		callback(datapoint)
+		err := callback(datapoint)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }

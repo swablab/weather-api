@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"weather-data/config"
 	"weather-data/storage"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -23,7 +22,6 @@ type mqttWeatherSource struct {
 	url                   string
 	topic                 string
 	mqttClient            mqtt.Client
-	sensorRegistry        storage.SensorRegistry
 	lastWeatherDataPoints []*storage.WeatherData
 	weatherSource         WeatherSourceBase
 }
@@ -34,10 +32,9 @@ func (source *mqttWeatherSource) Close() {
 }
 
 //NewMqttSource Factory function for mqttWeatherSource
-func NewMqttSource(url, topic string, sensorRegistry storage.SensorRegistry) (*mqttWeatherSource, error) {
+func NewMqttSource(url, topic string) (*mqttWeatherSource, error) {
 	source := new(mqttWeatherSource)
 	source.url = url
-	source.sensorRegistry = sensorRegistry
 
 	opts := mqtt.NewClientOptions().AddBroker(url)
 
@@ -69,11 +66,6 @@ func (source *mqttWeatherSource) mqttMessageHandler() mqtt.MessageHandler {
 
 		sensorId, err := uuid.Parse(regexUuid.FindAllString(msg.Topic(), 1)[0])
 		if err != nil {
-			return
-		}
-
-		if !config.AllowUnregisteredSensors() && !source.sensorRegistry.ExistSensorId(sensorId) {
-			fmt.Println("sensor have to be registered:", sensorId)
 			return
 		}
 
@@ -123,6 +115,6 @@ func (source *mqttWeatherSource) AddNewWeatherDataCallback(callback NewWeatherDa
 	source.weatherSource.AddNewWeatherDataCallback(callback)
 }
 
-func (source *mqttWeatherSource) newWeatherData(datapoint storage.WeatherData) {
-	source.weatherSource.NewWeatherData(datapoint)
+func (source *mqttWeatherSource) newWeatherData(datapoint storage.WeatherData) error {
+	return source.weatherSource.NewWeatherData(datapoint)
 }
