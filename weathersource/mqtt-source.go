@@ -1,6 +1,7 @@
 package weathersource
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -12,7 +13,7 @@ import (
 )
 
 var uuidRegexPattern = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
-var mqttTopicRegexPattern = "^sensor/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/(temp|pressure|humidity|co2level)$"
+var mqttTopicRegexPattern = fmt.Sprintf("^sensor/%s/(temp|pressure|humidity|co2level)$", uuidRegexPattern)
 
 var regexTopic *regexp.Regexp = regexp.MustCompile(mqttTopicRegexPattern)
 var regexUuid *regexp.Regexp = regexp.MustCompile(uuidRegexPattern)
