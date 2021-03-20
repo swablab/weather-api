@@ -41,10 +41,6 @@ func GetMqttTopic() string {
 	return getVariableWithDefault("WEATHER-API-MQTT_TOPIC", mqttTopic)
 }
 
-func GetMqttLocation() string {
-	return getVariableWithDefault("WEATHER-API-MQTT_LOCATION", defaultLocation)
-}
-
 //helper
 func getVariableWithDefault(variableKey, defaultValue string) string {
 	variable := os.Getenv(variableKey)

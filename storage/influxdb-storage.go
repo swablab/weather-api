@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 )
 
@@ -33,7 +34,7 @@ func NewInfluxStorage(token, bucket, organization, url string) (*influxStorage, 
 //Save WeatherData to InfluxDB
 func (storage *influxStorage) Save(data WeatherData) error {
 	tags := map[string]string{
-		"location": data.Location}
+		"sensorId": data.SensorId.String()}
 
 	fields := map[string]interface{}{
 		"temperature": data.Temperature,
@@ -73,12 +74,17 @@ func (storage *influxStorage) executeFluxQuery(query string) ([]*WeatherData, er
 
 	for result.Next() {
 		if result.Err() != nil {
+			return nil, result.Err()
+		}
+
+		timestamp := result.Record().Time()
+		sensorId, err := uuid.Parse(result.Record().ValueByKey("sensorId").(string))
+
+		if err != nil {
 			return nil, err
 		}
-		location := result.Record().ValueByKey("location").(string)
-		timestamp := result.Record().Time()
 
-		data, contained := containsWeatherData(queryResults, location, timestamp)
+		data, contained := containsWeatherData(queryResults, sensorId, timestamp)
 
 		if result.Record().Field() == "temperature" {
 			data.Temperature = result.Record().Value().(float64)
@@ -94,7 +100,7 @@ func (storage *influxStorage) executeFluxQuery(query string) ([]*WeatherData, er
 		}
 
 		if !contained {
-			data.Location = location
+			data.SensorId = sensorId
 			data.TimeStamp = timestamp
 			queryResults = append(queryResults, data)
 		}
@@ -103,9 +109,9 @@ func (storage *influxStorage) executeFluxQuery(query string) ([]*WeatherData, er
 	return queryResults, nil
 }
 
-func containsWeatherData(weatherData []*WeatherData, location string, timestamp time.Time) (*WeatherData, bool) {
+func containsWeatherData(weatherData []*WeatherData, sensorId uuid.UUID, timestamp time.Time) (*WeatherData, bool) {
 	for _, val := range weatherData {
-		if val.Location == location && val.TimeStamp == timestamp {
+		if val.SensorId == sensorId && val.TimeStamp == timestamp {
 			return val, true
 		}
 	}

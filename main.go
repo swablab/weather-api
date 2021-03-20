@@ -31,8 +31,7 @@ func main() {
 	var weatherSource weathersource.WeatherSource
 	weatherSource, err = weathersource.NewMqttSource(
 		config.GetMqttUrl(),
-		config.GetMqttTopic(),
-		config.GetMqttLocation())
+		config.GetMqttTopic())
 
 	if err != nil {
 		os.Exit(1)

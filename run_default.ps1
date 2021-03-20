@@ -9,7 +9,6 @@ Set-Item -Path "Env:WEATHER-API-INFLUX_BUCKET" -Value  "default-bucket"
 
 Set-Item -Path "Env:WEATHER-API-MQTT_URL" -Value "tcp://default-address.com:1883"
 Set-Item -Path "Env:WEATHER-API-MQTT_TOPIC" -Value "sensor/#"
-Set-Item -Path "Env:WEATHER-API-MQTT_LOCATION" -Value "default-location"
 
 #start application
 Start-Process "main.exe" -Wait -NoNewWindow

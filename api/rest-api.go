@@ -57,7 +57,7 @@ func (api *weatherRestApi) getData(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *weatherRestApi) randomWeatherHandler(w http.ResponseWriter, r *http.Request) {
-	datapoint := storage.NewRandomWeatherData("swablab")
+	datapoint := storage.NewRandomWeatherData(uuid.Nil)
 
 	w.Header().Add("content-type", "application/json")
 	json.NewEncoder(w).Encode(datapoint)
@@ -66,7 +66,7 @@ func (api *weatherRestApi) randomWeatherHandler(w http.ResponseWriter, r *http.R
 func (api *weatherRestApi) randomWeatherListHandler(w http.ResponseWriter, r *http.Request) {
 	var datapoints = make([]storage.WeatherData, 0)
 	for i := 0; i < 10; i++ {
-		datapoints = append(datapoints, storage.NewRandomWeatherData("swablab"))
+		datapoints = append(datapoints, storage.NewRandomWeatherData(uuid.Nil))
 	}
 
 	w.Header().Add("content-type", "application/json")

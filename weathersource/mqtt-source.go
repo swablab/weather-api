@@ -1,20 +1,28 @@
 package weathersource
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 	"weather-data/storage"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/google/uuid"
 )
 
+var uuidRegexPattern = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+var mqttTopicRegexPattern = "^sensor/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/(temp|pressure|humidity|co2level)$"
+
+var regexTopic *regexp.Regexp = regexp.MustCompile(mqttTopicRegexPattern)
+var regexUuid *regexp.Regexp = regexp.MustCompile(uuidRegexPattern)
+
 type mqttWeatherSource struct {
-	url           string
-	topic         string
-	mqttClient    mqtt.Client
-	lastData      storage.WeatherData
-	weatherSource WeatherSourceBase
+	url                   string
+	topic                 string
+	mqttClient            mqtt.Client
+	lastWeatherDataPoints []*storage.WeatherData
+	weatherSource         WeatherSourceBase
 }
 
 //Close mqtt client
@@ -23,7 +31,7 @@ func (source *mqttWeatherSource) Close() {
 }
 
 //NewMqttSource Factory function for mqttWeatherSource
-func NewMqttSource(url, topic, defaultLocation string) (*mqttWeatherSource, error) {
+func NewMqttSource(url, topic string) (*mqttWeatherSource, error) {
 	source := new(mqttWeatherSource)
 	source.url = url
 
@@ -35,7 +43,6 @@ func NewMqttSource(url, topic, defaultLocation string) (*mqttWeatherSource, erro
 	opts.SetPingTimeout(1 * time.Second)
 
 	source.mqttClient = mqtt.NewClient(opts)
-	source.lastData.Location = defaultLocation
 
 	if token := source.mqttClient.Connect(); token.Wait() && token.Error() != nil {
 		return nil, token.Error()
@@ -52,29 +59,53 @@ func NewMqttSource(url, topic, defaultLocation string) (*mqttWeatherSource, erro
 func (source *mqttWeatherSource) mqttMessageHandler() mqtt.MessageHandler {
 
 	return func(client mqtt.Client, msg mqtt.Message) {
+		if !regexTopic.MatchString(msg.Topic()) {
+			return
+		}
 
-		diff := time.Now().Sub(source.lastData.TimeStamp)
+		sensorId, err := uuid.Parse(regexUuid.FindAllString(msg.Topic(), 1)[0])
+		if err != nil {
+			return
+		}
+		lastWeatherData, found := source.getLastWeatherData(sensorId)
+
+		if !found {
+			lastWeatherData = new(storage.WeatherData)
+			lastWeatherData.SensorId = sensorId
+			source.lastWeatherDataPoints = append(source.lastWeatherDataPoints, lastWeatherData)
+		}
+
+		diff := time.Now().Sub(lastWeatherData.TimeStamp)
 		if diff >= time.Second && diff < time.Hour*6 {
-			source.newWeatherData(source.lastData)
+			source.newWeatherData(*lastWeatherData)
 		}
 
 		if strings.HasSuffix(msg.Topic(), "pressure") {
-			source.lastData.Pressure, _ = strconv.ParseFloat(string(msg.Payload()), 64)
-			source.lastData.TimeStamp = time.Now()
+			lastWeatherData.Pressure, _ = strconv.ParseFloat(string(msg.Payload()), 64)
+			lastWeatherData.TimeStamp = time.Now()
 		}
 		if strings.HasSuffix(msg.Topic(), "temp") {
-			source.lastData.Temperature, _ = strconv.ParseFloat(string(msg.Payload()), 64)
-			source.lastData.TimeStamp = time.Now()
+			lastWeatherData.Temperature, _ = strconv.ParseFloat(string(msg.Payload()), 64)
+			lastWeatherData.TimeStamp = time.Now()
 		}
 		if strings.HasSuffix(msg.Topic(), "humidity") {
-			source.lastData.Temperature, _ = strconv.ParseFloat(string(msg.Payload()), 64)
-			source.lastData.TimeStamp = time.Now()
+			lastWeatherData.Temperature, _ = strconv.ParseFloat(string(msg.Payload()), 64)
+			lastWeatherData.TimeStamp = time.Now()
 		}
 		if strings.HasSuffix(msg.Topic(), "co2level") {
-			source.lastData.CO2Level, _ = strconv.ParseFloat(string(msg.Payload()), 64)
-			source.lastData.TimeStamp = time.Now()
+			lastWeatherData.CO2Level, _ = strconv.ParseFloat(string(msg.Payload()), 64)
+			lastWeatherData.TimeStamp = time.Now()
 		}
 	}
+}
+
+func (source *mqttWeatherSource) getLastWeatherData(sensorId uuid.UUID) (*storage.WeatherData, bool) {
+	for _, data := range source.lastWeatherDataPoints {
+		if data.SensorId == sensorId {
+			return data, true
+		}
+	}
+	return nil, false
 }
 
 //AddNewWeatherDataCallback adds a new callbackMethod for incoming weather data
