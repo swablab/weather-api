@@ -17,7 +17,7 @@ type WeatherStorage interface {
 type SensorRegistry interface {
 	RegisterSensorByName(string) (*WeatherSensor, error)
 	ExistSensor(*WeatherSensor) bool
-	ExistSensorId(uuid.UUID) bool
+	ResolveSensorById(uuid.UUID) (*WeatherSensor, bool)
 	GetSensors() []*WeatherSensor
 	Close() error
 }

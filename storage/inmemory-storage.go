@@ -35,13 +35,13 @@ func (registry *inmemorySensorRegistry) ExistSensorName(name string) bool {
 	return false
 }
 
-func (registry *inmemorySensorRegistry) ExistSensorId(sensorId uuid.UUID) bool {
+func (registry *inmemorySensorRegistry) ResolveSensorById(sensorId uuid.UUID) (*WeatherSensor, bool) {
 	for _, s := range registry.weatherSensors {
 		if s.Id == sensorId {
-			return true
+			return s, true
 		}
 	}
-	return false
+	return nil, false
 }
 
 func (registry *inmemorySensorRegistry) ExistSensor(sensor *WeatherSensor) bool {
