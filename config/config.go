@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"strconv"
+	"time"
 )
 
 // const influx stuff
@@ -15,6 +16,8 @@ const influxURL = "https://influx.default-address.com"
 const mqttURL = "tcp://default-address.com:1883"
 const mqttTopic = "sensor/#"
 const defaultLocation = "default-location"
+const mqttPublishInterval = time.Second
+const mqttMinDistToLastValue = 250 * time.Millisecond
 
 //other config stuff
 const allowUnregisteredSensors = false
@@ -45,6 +48,23 @@ func GetMqttTopic() string {
 	return getVariableWithDefault("WEATHER-API-MQTT_TOPIC", mqttTopic)
 }
 
+func MqttPublishInterval() time.Duration {
+	interval, err := strconv.ParseInt(os.Getenv("WEATHER-API-MQTT_PUBLISH_INTERVAL"), 10, 64)
+	if err != nil {
+		return mqttPublishInterval
+	}
+	return time.Millisecond * time.Duration(interval)
+}
+
+func MqttMinDistToLastValue() time.Duration {
+	interval, err := strconv.ParseInt(os.Getenv("WEATHER-API-MQTT_MIN_DIST_TO_LAST_VALUE"), 10, 64)
+	if err != nil {
+		return mqttMinDistToLastValue
+	}
+	return time.Millisecond * time.Duration(interval)
+}
+
+//common config
 func AllowUnregisteredSensors() bool {
 	allow, err := strconv.ParseBool(os.Getenv("WEATHER-API-ALLOW_UNREGISTERED_SENSORS"))
 	if err != nil {

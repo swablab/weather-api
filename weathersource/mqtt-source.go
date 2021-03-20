@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"weather-data/config"
 	"weather-data/storage"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -53,6 +54,8 @@ func NewMqttSource(url, topic string) (*mqttWeatherSource, error) {
 		return nil, token.Error()
 	}
 
+	go source.publishDataValues()
+
 	return source, nil
 }
 
@@ -77,11 +80,6 @@ func (source *mqttWeatherSource) mqttMessageHandler() mqtt.MessageHandler {
 			source.lastWeatherDataPoints = append(source.lastWeatherDataPoints, lastWeatherData)
 		}
 
-		diff := time.Now().Sub(lastWeatherData.TimeStamp)
-		if diff >= time.Second && diff < time.Hour*6 {
-			source.newWeatherData(*lastWeatherData)
-		}
-
 		if strings.HasSuffix(msg.Topic(), "pressure") {
 			lastWeatherData.Pressure, _ = strconv.ParseFloat(string(msg.Payload()), 64)
 			lastWeatherData.TimeStamp = time.Now()
@@ -99,6 +97,22 @@ func (source *mqttWeatherSource) mqttMessageHandler() mqtt.MessageHandler {
 			lastWeatherData.TimeStamp = time.Now()
 		}
 	}
+}
+
+func (source *mqttWeatherSource) publishDataValues() {
+	for {
+		for len(source.lastWeatherDataPoints) != 0 {
+			current := *source.lastWeatherDataPoints[0]
+			diff := time.Now().Sub(current.TimeStamp)
+			if diff >= config.MqttMinDistToLastValue() {
+				source.newWeatherData(current)
+				source.lastWeatherDataPoints = source.lastWeatherDataPoints[1:]
+			}
+
+		}
+		time.Sleep(config.MqttPublishInterval())
+	}
+
 }
 
 func (source *mqttWeatherSource) getUnwrittenDatapoints(sensorId uuid.UUID) (*storage.WeatherData, bool) {
