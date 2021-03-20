@@ -13,11 +13,9 @@ import (
 	"github.com/google/uuid"
 )
 
-var uuidRegexPattern = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
-var mqttTopicRegexPattern = fmt.Sprintf("^sensor/%s/(temp|pressure|humidity|co2level)$", uuidRegexPattern)
+var mqttTopicRegexPattern = "(^sensor/)([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})(/(temp|pressure|humidity|co2level)$)"
 
 var regexTopic *regexp.Regexp = regexp.MustCompile(mqttTopicRegexPattern)
-var regexUuid *regexp.Regexp = regexp.MustCompile(uuidRegexPattern)
 
 type mqttWeatherSource struct {
 	url                   string
@@ -67,10 +65,11 @@ func (source *mqttWeatherSource) mqttMessageHandler() mqtt.MessageHandler {
 			return
 		}
 
-		sensorId, err := uuid.Parse(regexUuid.FindAllString(msg.Topic(), 1)[0])
+		sensorId, err := uuid.Parse(regexTopic.FindStringSubmatch(msg.Topic())[2])
 		if err != nil {
 			return
 		}
+		fmt.Println(sensorId)
 
 		lastWeatherData, found := source.getUnwrittenDatapoints(sensorId)
 
