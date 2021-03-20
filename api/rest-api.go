@@ -43,19 +43,38 @@ func (api *weatherRestApi) handleRequests() *mux.Router {
 	router.HandleFunc("/random", api.randomWeatherHandler)
 	router.HandleFunc("/randomlist", api.randomWeatherListHandler)
 	router.HandleFunc("/addData", api.addDataHandler)
-	router.HandleFunc("/getData", api.getData)
+	router.HandleFunc("/getData/{id}", api.getData)
 	router.HandleFunc("/registerWeatherSensor/{name}", api.registerWeatherSensor)
 	return router
 }
 
 func (api *weatherRestApi) getData(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("content-type", "application/json")
-	data, err := api.weaterStorage.GetData()
+
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	query, err := storage.ParseFromUrlQuery(r.URL.Query())
+	if err != nil {
+		http.Error(w, fmt.Sprintf("could not parse query: %v", err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	query.SensorId, err = uuid.Parse(id)
+	if err != nil {
+		http.Error(w, "could not parse uuid", http.StatusBadRequest)
+		return
+	}
+
+	fmt.Println(query)
+
+	data, err := api.weaterStorage.GetData(query)
 	if err != nil {
 		http.Error(w, "", http.StatusBadRequest)
 		return
 	}
-	json.NewEncoder(w).Encode(data)
+	res := storage.GetOnlyQueriedFields(data, query)
+	json.NewEncoder(w).Encode(res)
 }
 
 func (api *weatherRestApi) randomWeatherHandler(w http.ResponseWriter, r *http.Request) {

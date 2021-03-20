@@ -53,11 +53,37 @@ func (storage *influxStorage) Save(data WeatherData) error {
 }
 
 //GetData datapoints from InfluxDB
-func (storage *influxStorage) GetData() ([]*WeatherData, error) {
+func (storage *influxStorage) GetData(query *WeatherQuery) ([]*WeatherData, error) {
 
-	query := fmt.Sprintf("from(bucket:\"%v\")|> range(start: -40m, stop: -20m) |> filter(fn: (r) => r._measurement == \"data\" and r.location == \"Hamburg\")", storage.bucket)
+	fields := ""
+	concat := ""
 
-	res, err := storage.executeFluxQuery(query)
+	if query.Temperature {
+		fields = fmt.Sprintf("%v %v r._field == \"temperature\"", fields, concat)
+		concat = "or"
+	}
+
+	if query.Humidity {
+		fields = fmt.Sprintf("%v %v r._field == \"humidity\"", fields, concat)
+		concat = "or"
+	}
+
+	if query.Pressure {
+		fields = fmt.Sprintf("%v %v r._field == \"pressure\"", fields, concat)
+		concat = "or"
+	}
+
+	if query.Co2Level {
+		fields = fmt.Sprintf("%v %v r._field == \"co2level\"", fields, concat)
+		concat = "or"
+	}
+
+	fields = fmt.Sprintf(" and ( %v )", fields)
+
+	fluxQuery := fmt.Sprintf("from(bucket:\"%v\")|> range(start: %v, stop: %v) |> filter(fn: (r) => r._measurement == \"%v\" %v)", storage.bucket, query.Start.Format(time.RFC3339), query.End.Format(time.RFC3339), storage.measurement, fields)
+	fmt.Println(fluxQuery)
+
+	res, err := storage.executeFluxQuery(fluxQuery)
 	return res, err
 }
 
