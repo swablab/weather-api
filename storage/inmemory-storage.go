@@ -1,8 +1,9 @@
 package storage
 
 import (
+	"errors"
+
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
 )
 
 type inmemorySensorRegistry struct {
@@ -16,7 +17,7 @@ func NewInmemorySensorRegistry() *inmemorySensorRegistry {
 
 func (registry *inmemorySensorRegistry) RegisterSensorByName(name string) (*WeatherSensor, error) {
 	if registry.ExistSensorName(name) {
-		return nil, errors.Errorf("Sensorname already exists")
+		return nil, errors.New("Sensorname already exists")
 	}
 	sensor := new(WeatherSensor)
 	sensor.Name = name
