@@ -80,8 +80,7 @@ func (storage *influxStorage) GetData(query *WeatherQuery) ([]*WeatherData, erro
 
 	fields = fmt.Sprintf(" and ( %v )", fields)
 
-	fluxQuery := fmt.Sprintf("from(bucket:\"%v\")|> range(start: %v, stop: %v) |> filter(fn: (r) => r._measurement == \"%v\" %v)", storage.bucket, query.Start.Format(time.RFC3339), query.End.Format(time.RFC3339), storage.measurement, fields)
-	fmt.Println(fluxQuery)
+	fluxQuery := fmt.Sprintf("from(bucket:\"%v\")|> range(start: %v, stop: %v) |> filter(fn: (r) => r._measurement == \"%v\" and r.sensorId == \"%v\" %v)", storage.bucket, query.Start.Format(time.RFC3339), query.End.Format(time.RFC3339), storage.measurement, query.SensorId, fields)
 
 	res, err := storage.executeFluxQuery(fluxQuery)
 	return res, err

@@ -66,8 +66,6 @@ func (api *weatherRestApi) getData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(query)
-
 	data, err := api.weaterStorage.GetData(query)
 	if err != nil {
 		http.Error(w, "", http.StatusBadRequest)
