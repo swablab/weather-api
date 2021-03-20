@@ -22,6 +22,7 @@ type mqttWeatherSource struct {
 	url                   string
 	topic                 string
 	mqttClient            mqtt.Client
+	sensorRegistry        storage.SensorRegistry
 	lastWeatherDataPoints []*storage.WeatherData
 	weatherSource         WeatherSourceBase
 }
@@ -32,9 +33,10 @@ func (source *mqttWeatherSource) Close() {
 }
 
 //NewMqttSource Factory function for mqttWeatherSource
-func NewMqttSource(url, topic string) (*mqttWeatherSource, error) {
+func NewMqttSource(url, topic string, sensorRegistry storage.SensorRegistry) (*mqttWeatherSource, error) {
 	source := new(mqttWeatherSource)
 	source.url = url
+	source.sensorRegistry = sensorRegistry
 
 	opts := mqtt.NewClientOptions().AddBroker(url)
 
@@ -68,7 +70,13 @@ func (source *mqttWeatherSource) mqttMessageHandler() mqtt.MessageHandler {
 		if err != nil {
 			return
 		}
-		lastWeatherData, found := source.getLastWeatherData(sensorId)
+
+		if !source.sensorRegistry.ExistSensorId(sensorId) {
+			fmt.Println("sensor not registered")
+			return
+		}
+
+		lastWeatherData, found := source.getUnwrittenDatapoints(sensorId)
 
 		if !found {
 			lastWeatherData = new(storage.WeatherData)
@@ -100,7 +108,7 @@ func (source *mqttWeatherSource) mqttMessageHandler() mqtt.MessageHandler {
 	}
 }
 
-func (source *mqttWeatherSource) getLastWeatherData(sensorId uuid.UUID) (*storage.WeatherData, bool) {
+func (source *mqttWeatherSource) getUnwrittenDatapoints(sensorId uuid.UUID) (*storage.WeatherData, bool) {
 	for _, data := range source.lastWeatherDataPoints {
 		if data.SensorId == sensorId {
 			return data, true
@@ -115,7 +123,5 @@ func (source *mqttWeatherSource) AddNewWeatherDataCallback(callback NewWeatherDa
 }
 
 func (source *mqttWeatherSource) newWeatherData(datapoint storage.WeatherData) {
-	for _, callback := range source.weatherSource.newWeatherDataCallbackFuncs {
-		callback(datapoint)
-	}
+	source.weatherSource.NewWeatherData(datapoint)
 }

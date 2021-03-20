@@ -14,6 +14,14 @@ type WeatherStorage interface {
 	Close() error
 }
 
+type SensorRegistry interface {
+	RegisterSensorByName(string) (*WeatherSensor, error)
+	ExistSensor(*WeatherSensor) bool
+	ExistSensorId(uuid.UUID) bool
+	GetSensors() []*WeatherSensor
+	Close() error
+}
+
 //WeatherData type
 type WeatherData struct {
 	Humidity    float64   `json:"humidity"`
@@ -22,6 +30,15 @@ type WeatherData struct {
 	CO2Level    float64   `json:"co2level"`
 	SensorId    uuid.UUID `json:"SensorId"`
 	TimeStamp   time.Time `json:"timestamp"`
+}
+
+//WeatherSensor is the data for a new Sensorregistration
+type WeatherSensor struct {
+	Name      string
+	Id        uuid.UUID
+	Location  string
+	Longitude float64
+	Lattitude float64
 }
 
 //NewRandomWeatherData creates random WeatherData with given Location

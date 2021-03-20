@@ -8,10 +8,19 @@ import (
 	"weather-data/weathersource"
 )
 
+var sensorRegistry storage.SensorRegistry
+var weatherStorage storage.WeatherStorage
+var weatherSource weathersource.WeatherSource
+var weatherAPI api.WeatherAPI
+
 func main() {
+	//setup new sensorRegistry -> InmemorySensorRegistry
+	sensorRegistry = storage.NewInmemorySensorRegistry()
+	defer sensorRegistry.Close()
+
 	//setup a new weatherstorage -> InfluxDB
-	var weatherStorage storage.WeatherStorage
-	weatherStorage, err := storage.NewInfluxStorage(
+	var err error
+	weatherStorage, err = storage.NewInfluxStorage(
 		config.GetInfluxToken(),
 		config.GetInfluxBucket(),
 		config.GetInfluxOrganization(),
@@ -22,32 +31,29 @@ func main() {
 	}
 	defer weatherStorage.Close()
 
-	var newWeatherDataHandler weathersource.NewWeatherDataCallbackFunc
-	newWeatherDataHandler = func(wd storage.WeatherData) {
-		weatherStorage.Save(wd)
-	}
-
-	//add a new weatherData source -> mqtt
-	var weatherSource weathersource.WeatherSource
+	//setup new weatherData source -> mqtt
 	weatherSource, err = weathersource.NewMqttSource(
 		config.GetMqttUrl(),
-		config.GetMqttTopic())
+		config.GetMqttTopic(),
+		sensorRegistry)
 
 	if err != nil {
 		os.Exit(1)
 	}
 	defer weatherSource.Close()
-
-	weatherSource.AddNewWeatherDataCallback(newWeatherDataHandler)
+	weatherSource.AddNewWeatherDataCallback(handleNewWeatherData)
 
 	//setup a API -> REST
-	var weatherAPI api.WeatherAPI
-	weatherAPI = api.NewRestAPI(":10000", weatherStorage)
+	weatherAPI = api.NewRestAPI(":10000", weatherStorage, sensorRegistry)
 	defer weatherAPI.Close()
+	weatherAPI.AddNewWeatherDataCallback(handleNewWeatherData)
 
 	err = weatherAPI.Start()
 	if err != nil {
 		os.Exit(1)
 	}
+}
 
+func handleNewWeatherData(wd storage.WeatherData) {
+	weatherStorage.Save(wd)
 }

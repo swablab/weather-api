@@ -12,16 +12,18 @@ import (
 )
 
 type weatherRestApi struct {
-	connection    string
-	weaterStorage storage.WeatherStorage
-	weatherSource weathersource.WeatherSourceBase
+	connection     string
+	weaterStorage  storage.WeatherStorage
+	weatherSource  weathersource.WeatherSourceBase
+	sensorRegistry storage.SensorRegistry
 }
 
 //SetupAPI sets the REST-API up
-func NewRestAPI(connection string, weatherStorage storage.WeatherStorage) *weatherRestApi {
+func NewRestAPI(connection string, weatherStorage storage.WeatherStorage, sensorRegistry storage.SensorRegistry) *weatherRestApi {
 	api := new(weatherRestApi)
 	api.connection = connection
 	api.weaterStorage = weatherStorage
+	api.sensorRegistry = sensorRegistry
 	return api
 }
 
@@ -101,14 +103,15 @@ func (api *weatherRestApi) registerWeatherSensor(w http.ResponseWriter, r *http.
 	w.Header().Add("content-type", "application/json")
 
 	vars := mux.Vars(r)
-	key := vars["name"]
+	name := vars["name"]
 
-	registration := SensorRegistration{
-		Name: key,
-		Id:   uuid.New(),
+	sensor, err := api.sensorRegistry.RegisterSensorByName(name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
-	json.NewEncoder(w).Encode(registration)
+	json.NewEncoder(w).Encode(sensor)
 }
 
 //AddNewWeatherDataCallback adds a new callbackMethod for incoming weather data
@@ -118,5 +121,4 @@ func (api *weatherRestApi) AddNewWeatherDataCallback(callback weathersource.NewW
 
 func (api *weatherRestApi) addNewWeatherData(weatherData storage.WeatherData) {
 	api.weatherSource.NewWeatherData(weatherData)
-	api.weaterStorage.Save(weatherData)
 }
