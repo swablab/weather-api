@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strconv"
 )
 
 // const influx stuff
@@ -14,6 +15,9 @@ const influxURL = "https://influx.default-address.com"
 const mqttURL = "tcp://default-address.com:1883"
 const mqttTopic = "sensor/#"
 const defaultLocation = "default-location"
+
+//other config stuff
+const allowUnregisteredSensors = false
 
 //influx config
 func GetInfluxUrl() string {
@@ -39,6 +43,14 @@ func GetMqttUrl() string {
 
 func GetMqttTopic() string {
 	return getVariableWithDefault("WEATHER-API-MQTT_TOPIC", mqttTopic)
+}
+
+func AllowUnregisteredSensors() bool {
+	allow, err := strconv.ParseBool(os.Getenv("WEATHER-API-ALLOW_UNREGISTERED_SENSORS"))
+	if err != nil {
+		return allowUnregisteredSensors
+	}
+	return allow
 }
 
 //helper

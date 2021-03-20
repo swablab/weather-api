@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"weather-data/config"
 	"weather-data/storage"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -71,8 +72,8 @@ func (source *mqttWeatherSource) mqttMessageHandler() mqtt.MessageHandler {
 			return
 		}
 
-		if !source.sensorRegistry.ExistSensorId(sensorId) {
-			fmt.Println("sensor not registered")
+		if !config.AllowUnregisteredSensors() && !source.sensorRegistry.ExistSensorId(sensorId) {
+			fmt.Println("sensor have to be registered:", sensorId)
 			return
 		}
 
