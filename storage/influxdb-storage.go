@@ -54,7 +54,12 @@ func (storage *influxStorage) Save(data WeatherData) error {
 
 //GetData datapoints from InfluxDB
 func (storage *influxStorage) GetData(query *WeatherQuery) ([]*WeatherData, error) {
+	fluxQuery := storage.createFluxQuery(query)
+	res, err := storage.executeFluxQuery(fluxQuery)
+	return res, err
+}
 
+func (storage *influxStorage) createFluxQuery(query *WeatherQuery) string {
 	fields := ""
 	concat := ""
 
@@ -81,9 +86,7 @@ func (storage *influxStorage) GetData(query *WeatherQuery) ([]*WeatherData, erro
 	fields = fmt.Sprintf(" and ( %v )", fields)
 
 	fluxQuery := fmt.Sprintf("from(bucket:\"%v\")|> range(start: %v, stop: %v) |> filter(fn: (r) => r._measurement == \"%v\" and r.sensorId == \"%v\" %v)", storage.bucket, query.Start.Format(time.RFC3339), query.End.Format(time.RFC3339), storage.measurement, query.SensorId, fields)
-
-	res, err := storage.executeFluxQuery(fluxQuery)
-	return res, err
+	return fluxQuery
 }
 
 func (storage *influxStorage) executeFluxQuery(query string) ([]*WeatherData, error) {
