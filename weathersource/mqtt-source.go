@@ -1,7 +1,6 @@
 package weathersource
 
 import (
-	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -30,8 +29,18 @@ func (source *mqttWeatherSource) Close() {
 	source.mqttClient.Disconnect(2)
 }
 
+//NewAnonymousMqttSource Factory function for mqttWeatherSource with anonymous authentication
+func NewAnonymousMqttSource(url, topic string) (*mqttWeatherSource, error) {
+	return newMqttSource(url, topic, "", "", true)
+}
+
+//NewMqttSource Factory function for mqttWeatherSource with authentication
+func NewMqttSource(url, topic, user, password string) (*mqttWeatherSource, error) {
+	return newMqttSource(url, topic, user, password, false)
+}
+
 //NewMqttSource Factory function for mqttWeatherSource
-func NewMqttSource(url, topic string) (*mqttWeatherSource, error) {
+func newMqttSource(url, topic, user, password string, anonymous bool) (*mqttWeatherSource, error) {
 	source := new(mqttWeatherSource)
 	source.url = url
 
@@ -41,6 +50,11 @@ func NewMqttSource(url, topic string) (*mqttWeatherSource, error) {
 	opts.SetKeepAlive(60 * time.Second)
 	opts.SetDefaultPublishHandler(source.mqttMessageHandler())
 	opts.SetPingTimeout(1 * time.Second)
+
+	if !anonymous {
+		opts.Username = user
+		opts.Password = password
+	}
 
 	source.mqttClient = mqtt.NewClient(opts)
 
@@ -69,7 +83,6 @@ func (source *mqttWeatherSource) mqttMessageHandler() mqtt.MessageHandler {
 		if err != nil {
 			return
 		}
-		fmt.Println(sensorId)
 
 		lastWeatherData, found := source.getUnwrittenDatapoints(sensorId)
 

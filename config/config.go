@@ -16,6 +16,9 @@ const influxURL = "https://influx.default-address.com"
 const mqttURL = "tcp://default-address.com:1883"
 const mqttTopic = "sensor/#"
 const defaultLocation = "default-location"
+const mqttUser = "weather-api"
+const mqttPassword = "weather-api"
+const useAnonymousMqttAuthentication = false
 const mqttPublishInterval = time.Second
 const mqttMinDistToLastValue = 250 * time.Millisecond
 
@@ -48,6 +51,18 @@ func GetMqttTopic() string {
 	return getVariableWithDefault("WEATHER-API-MQTT_TOPIC", mqttTopic)
 }
 
+func GetMqttUser() string {
+	return getVariableWithDefault("WEATHER-API-MQTT_USER", mqttTopic)
+}
+
+func GetMqttPassword() string {
+	return getVariableWithDefault("WEATHER-API-MQTT_PASSWORD", mqttTopic)
+}
+
+func UseAnonymousMqttAuthentication() bool {
+	return getVariableWithDefaultBool("WEATHER-API-ANONYMOUS_MQTT_AUTHENTICATION", useAnonymousMqttAuthentication)
+}
+
 func MqttPublishInterval() time.Duration {
 	interval, err := strconv.ParseInt(os.Getenv("WEATHER-API-MQTT_PUBLISH_INTERVAL"), 10, 64)
 	if err != nil {
@@ -66,11 +81,7 @@ func MqttMinDistToLastValue() time.Duration {
 
 //common config
 func AllowUnregisteredSensors() bool {
-	allow, err := strconv.ParseBool(os.Getenv("WEATHER-API-ALLOW_UNREGISTERED_SENSORS"))
-	if err != nil {
-		return allowUnregisteredSensors
-	}
-	return allow
+	return getVariableWithDefaultBool("WEATHER-API-ALLOW_UNREGISTERED_SENSORS", allowUnregisteredSensors)
 }
 
 //helper
@@ -80,4 +91,12 @@ func getVariableWithDefault(variableKey, defaultValue string) string {
 		return defaultValue
 	}
 	return variable
+}
+
+func getVariableWithDefaultBool(variableKey string, defaultValue bool) bool {
+	ok, err := strconv.ParseBool(os.Getenv(variableKey))
+	if err != nil {
+		return defaultValue
+	}
+	return ok
 }

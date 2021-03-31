@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"weather-data/api"
 	"weather-data/config"
@@ -33,13 +34,22 @@ func main() {
 	defer weatherStorage.Close()
 
 	//setup new weatherData source -> mqtt
-	weatherSource, err = weathersource.NewMqttSource(
-		config.GetMqttUrl(),
-		config.GetMqttTopic())
-
+	if config.UseAnonymousMqttAuthentication() {
+		weatherSource, err = weathersource.NewAnonymousMqttSource(
+			config.GetMqttUrl(),
+			config.GetMqttTopic())
+	} else {
+		weatherSource, err = weathersource.NewMqttSource(
+			config.GetMqttUrl(),
+			config.GetMqttTopic(),
+			config.GetMqttUser(),
+			config.GetMqttPassword())
+	}
 	if err != nil {
+		fmt.Println("Could not connect to mqtt:", err.Error())
 		os.Exit(1)
 	}
+
 	defer weatherSource.Close()
 	weatherSource.AddNewWeatherDataCallback(handleNewWeatherData)
 
