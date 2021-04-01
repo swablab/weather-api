@@ -69,7 +69,7 @@ type WeatherSensor struct {
 	Id        uuid.UUID
 	Location  string
 	Longitude float64
-	Lattitude float64
+	Latitude  float64
 }
 
 type WeatherQuery struct {
