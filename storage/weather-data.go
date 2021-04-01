@@ -21,7 +21,7 @@ type SensorRegistry interface {
 	RegisterSensorByName(string) (*WeatherSensor, error)
 	ExistSensor(*WeatherSensor) bool
 	ResolveSensorById(uuid.UUID) (*WeatherSensor, bool)
-	GetSensors() []*WeatherSensor
+	GetSensors() ([]*WeatherSensor, error)
 	Close() error
 }
 

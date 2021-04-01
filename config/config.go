@@ -22,6 +22,11 @@ const useAnonymousMqttAuthentication = false
 const mqttPublishInterval = time.Second
 const mqttMinDistToLastValue = 250 * time.Millisecond
 
+//const mongodb stuff
+const mongodbURL = "mongodb://default-address.com:27017"
+const mongodbName = "weathersensors"
+const mongodbCollection = "sensordata"
+
 //other config stuff
 const allowUnregisteredSensors = false
 
@@ -77,6 +82,19 @@ func MqttMinDistToLastValue() time.Duration {
 		return mqttMinDistToLastValue
 	}
 	return time.Millisecond * time.Duration(interval)
+}
+
+//mongodb config
+func GetMongodbURL() string {
+	return getVariableWithDefault("WEATHER-API-MONGODB_URL", mongodbURL)
+}
+
+func GetMongodbName() string {
+	return getVariableWithDefault("WEATHER-API-MONGODB_NAME", mongodbName)
+}
+
+func GetMongodbCollection() string {
+	return getVariableWithDefault("WEATHER-API-MONGODB_COLLECTION", mongodbCollection)
 }
 
 //common config

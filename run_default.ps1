@@ -11,10 +11,14 @@ Set-Item -Path "Env:WEATHER-API-MQTT_URL" -Value "tcp://default-address.com:1883
 Set-Item -Path "Env:WEATHER-API-MQTT_TOPIC" -Value "sensor/#"
 Set-Item -Path "Env:WEATHER-API-MQTT_USER" -Value "weather-api"
 Set-Item -Path "Env:WEATHER-API-MQTT_PASSWORD" -Value "weather-api"
-Set-Item -Path "Env:WEATHER-API-ANONYMOUS_MQTT_AUTHENTICATION" -Value "false"
 Set-Item -Path "Env:WEATHER-API-MQTT_PUBLISH_INTERVAL" -Value "2500"
 Set-Item -Path "Env:WEATHER-API-MQTT_MIN_DIST_TO_LAST_VALUE" -Value "250"
 
+Set-Item -Path "Env:WEATHER-API-MONGODB_URL" -Value "mongodb://default-address.com:27017"
+Set-Item -Path "Env:WEATHER-API-MONGODB_NAME" -Value "weathersensors"
+Set-Item -Path "Env:WEATHER-API-MONGODB_COLLECTION" -Value "sensordata"
+
+Set-Item -Path "Env:WEATHER-API-ANONYMOUS_MQTT_AUTHENTICATION" -Value "false"
 Set-Item -Path "Env:WEATHER-API-ALLOW_UNREGISTERED_SENSORS" -Value "true"
 
 #start application

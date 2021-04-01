@@ -16,12 +16,19 @@ var weatherSource weathersource.WeatherSource
 var weatherAPI api.WeatherAPI
 
 func main() {
-	//setup new sensorRegistry -> InmemorySensorRegistry
-	sensorRegistry = storage.NewInmemorySensorRegistry()
+	//setup new sensorRegistry -> MongodbSensorRegistry
+	var err error
+	sensorRegistry, err = storage.NewMongodbSensorRegistry(
+		config.GetMongodbURL(),
+		config.GetMongodbName(),
+		config.GetMongodbCollection())
+
+	if err != nil {
+		os.Exit(1)
+	}
 	defer sensorRegistry.Close()
 
 	//setup a new weatherstorage -> InfluxDB
-	var err error
 	weatherStorage, err = storage.NewInfluxStorage(
 		config.GetInfluxToken(),
 		config.GetInfluxBucket(),

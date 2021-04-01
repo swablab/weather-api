@@ -7,4 +7,5 @@ require (
 	github.com/google/uuid v1.2.0
 	github.com/gorilla/mux v1.8.0
 	github.com/influxdata/influxdb-client-go/v2 v2.2.2
+	go.mongodb.org/mongo-driver v1.5.1 // indirect
 )

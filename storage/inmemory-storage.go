@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 )
@@ -17,7 +17,7 @@ func NewInmemorySensorRegistry() *inmemorySensorRegistry {
 
 func (registry *inmemorySensorRegistry) RegisterSensorByName(name string) (*WeatherSensor, error) {
 	if registry.ExistSensorName(name) {
-		return nil, errors.New("Sensorname already exists")
+		return nil, fmt.Errorf("Sensorname already exists")
 	}
 	sensor := new(WeatherSensor)
 	sensor.Name = name
@@ -53,8 +53,8 @@ func (registry *inmemorySensorRegistry) ExistSensor(sensor *WeatherSensor) bool 
 	return false
 }
 
-func (registry *inmemorySensorRegistry) GetSensors() []*WeatherSensor {
-	return registry.weatherSensors
+func (registry *inmemorySensorRegistry) GetSensors() ([]*WeatherSensor, error) {
+	return registry.weatherSensors, nil
 }
 
 func (registry *inmemorySensorRegistry) Close() error {
