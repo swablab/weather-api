@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"weather-data/storage"
 	"weather-data/weathersource"
 
@@ -29,7 +30,8 @@ func NewRestAPI(connection string, weatherStorage storage.WeatherStorage, sensor
 
 //Start a new Rest-API instance
 func (api *weatherRestApi) Start() error {
-	return http.ListenAndServe(api.connection, api.handleRequests())
+	handler := api.handleRequests()
+	return http.ListenAndServe(api.connection, handler) // http.ListenAndServe(api.connection, handler)
 }
 
 func (api *weatherRestApi) Close() {
@@ -37,7 +39,7 @@ func (api *weatherRestApi) Close() {
 
 func (api *weatherRestApi) handleRequests() *mux.Router {
 
-	router := mux.NewRouter().StrictSlash(true)
+	router := mux.NewRouter()
 
 	router.HandleFunc("/", api.homePageHandler)
 	router.HandleFunc("/random", api.randomWeatherHandler)
@@ -46,6 +48,13 @@ func (api *weatherRestApi) handleRequests() *mux.Router {
 	router.HandleFunc("/getData/{id}", api.getData)
 	router.HandleFunc("/registerWeatherSensor/{name}", api.registerWeatherSensor)
 	return router
+}
+
+func caselessMatcher(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.URL.Path = strings.ToLower(r.URL.Path)
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (api *weatherRestApi) getData(w http.ResponseWriter, r *http.Request) {
