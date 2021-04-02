@@ -21,7 +21,9 @@ func main() {
 	sensorRegistry, err = storage.NewMongodbSensorRegistry(
 		config.GetMongodbURL(),
 		config.GetMongodbName(),
-		config.GetMongodbCollection())
+		config.GetMongodbCollection(),
+		config.GetMongodbUserName(),
+		config.GetMongodbPassword())
 
 	if err != nil {
 		os.Exit(1)

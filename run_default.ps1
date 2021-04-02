@@ -17,6 +17,8 @@ Set-Item -Path "Env:WEATHER-API-MQTT_MIN_DIST_TO_LAST_VALUE" -Value "250"
 Set-Item -Path "Env:WEATHER-API-MONGODB_URL" -Value "mongodb://default-address.com:27017"
 Set-Item -Path "Env:WEATHER-API-MONGODB_NAME" -Value "weathersensors"
 Set-Item -Path "Env:WEATHER-API-MONGODB_COLLECTION" -Value "sensordata"
+Set-Item -Path "Env:WEATHER-API-MONGODB_USER" -Value "mongoUser"
+Set-Item -Path "Env:WEATHER-API-MONGODB_PASSWORD" -Value "mongoPassword"
 
 Set-Item -Path "Env:WEATHER-API-ANONYMOUS_MQTT_AUTHENTICATION" -Value "false"
 Set-Item -Path "Env:WEATHER-API-ALLOW_UNREGISTERED_SENSORS" -Value "true"

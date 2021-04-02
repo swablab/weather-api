@@ -19,10 +19,12 @@ type mongodbSensorRegistry struct {
 	client           *mongo.Client
 }
 
-func NewMongodbSensorRegistry(connection, database, collection string) (*mongodbSensorRegistry, error) {
+func NewMongodbSensorRegistry(connection, database, collection, user, password string) (*mongodbSensorRegistry, error) {
 	sensorRegistry := new(mongodbSensorRegistry)
 
-	client, err := mongo.NewClient(options.Client().ApplyURI(connection))
+	options := options.Client().ApplyURI(connection).SetAuth(options.Credential{Username: user, Password: password})
+
+	client, err := mongo.NewClient(options)
 	if err != nil {
 		return nil, err
 	}
