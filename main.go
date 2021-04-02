@@ -1,8 +1,8 @@
 package main
 
 import (
-	"errors"
 	"fmt"
+	"log"
 	"os"
 	"weather-data/api"
 	"weather-data/config"
@@ -19,19 +19,21 @@ func main() {
 	//setup new sensorRegistry -> MongodbSensorRegistry
 	var err error
 	if sensorRegistry, err = storage.NewMongodbSensorRegistry(config.MongoConfiguration); err != nil {
+		log.Fatal(err)
 		os.Exit(1)
 	}
 	defer sensorRegistry.Close()
 
 	//setup a new weatherstorage -> InfluxDB
 	if weatherStorage, err = storage.NewInfluxStorage(config.InfluxConfiguration); err != nil {
+		log.Fatal(err)
 		os.Exit(1)
 	}
 	defer weatherStorage.Close()
 
 	//setup new weatherData source -> mqtt
 	if weatherSource, err = weathersource.NewMqttSource(config.MqttConfiguration); err != nil {
-		fmt.Println("Could not connect to mqtt:", err.Error())
+		log.Fatal(err)
 		os.Exit(1)
 	}
 	defer weatherSource.Close()
@@ -44,14 +46,15 @@ func main() {
 
 	err = weatherAPI.Start()
 	if err != nil {
+		log.Fatal(err)
 		os.Exit(1)
 	}
 }
 
 func handleNewWeatherData(wd storage.WeatherData) error {
-	_, couldResolve := sensorRegistry.ResolveSensorById(wd.SensorId)
-	if !config.AllowUnregisteredSensors && !couldResolve {
-		return errors.New("sensor have to be registered")
+	_, err := sensorRegistry.ResolveSensorById(wd.SensorId)
+	if !config.AllowUnregisteredSensors && err != nil {
+		return fmt.Errorf("could not resolve sensor")
 	}
 	weatherStorage.Save(wd)
 	return nil

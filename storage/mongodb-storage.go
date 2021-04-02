@@ -52,7 +52,11 @@ func NewMongodbSensorRegistry(mongoCfg config.MongoConfig) (*mongodbSensorRegist
 }
 
 func (registry *mongodbSensorRegistry) RegisterSensorByName(name string) (*WeatherSensor, error) {
-	if registry.ExistSensorName(name) {
+	exist, err := registry.ExistSensorName(name)
+	if err != nil {
+		return nil, err
+	}
+	if exist {
 		return nil, fmt.Errorf("Sensorname already exists")
 	}
 	sensor := new(WeatherSensor)
@@ -60,51 +64,51 @@ func (registry *mongodbSensorRegistry) RegisterSensorByName(name string) (*Weath
 	sensor.Id = uuid.New()
 
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	_, err := registry.sensorCollection.InsertOne(ctx, sensor)
+	_, err = registry.sensorCollection.InsertOne(ctx, sensor)
 
 	return sensor, err
 }
 
-func (registry *mongodbSensorRegistry) ExistSensorName(name string) bool {
+func (registry *mongodbSensorRegistry) ExistSensorName(name string) (bool, error) {
 	sensors, err := registry.GetSensors()
 	if err != nil {
 		log.Fatal(err)
-		return false
+		return false, err
 	}
 	for _, s := range sensors {
 		if s.Name == name {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
-func (registry *mongodbSensorRegistry) ResolveSensorById(sensorId uuid.UUID) (*WeatherSensor, bool) {
+func (registry *mongodbSensorRegistry) ResolveSensorById(sensorId uuid.UUID) (*WeatherSensor, error) {
 	sensors, err := registry.GetSensors()
 	if err != nil {
 		log.Fatal(err)
-		return nil, false
+		return nil, err
 	}
 	for _, s := range sensors {
 		if s.Id == sensorId {
-			return s, true
+			return s, nil
 		}
 	}
-	return nil, false
+	return nil, fmt.Errorf("sensor does not exist")
 }
 
-func (registry *mongodbSensorRegistry) ExistSensor(sensor *WeatherSensor) bool {
+func (registry *mongodbSensorRegistry) ExistSensor(sensor *WeatherSensor) (bool, error) {
 	sensors, err := registry.GetSensors()
 	if err != nil {
 		log.Fatal(err)
-		return false
+		return false, err
 	}
 	for _, s := range sensors {
 		if s.Id == sensor.Id {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
 func (registry *mongodbSensorRegistry) GetSensors() ([]*WeatherSensor, error) {

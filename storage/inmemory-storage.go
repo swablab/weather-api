@@ -16,7 +16,11 @@ func NewInmemorySensorRegistry() *inmemorySensorRegistry {
 }
 
 func (registry *inmemorySensorRegistry) RegisterSensorByName(name string) (*WeatherSensor, error) {
-	if registry.ExistSensorName(name) {
+	exist, err := registry.ExistSensorName(name)
+	if err != nil {
+		return nil, err
+	}
+	if exist {
 		return nil, fmt.Errorf("Sensorname already exists")
 	}
 	sensor := new(WeatherSensor)
@@ -26,31 +30,31 @@ func (registry *inmemorySensorRegistry) RegisterSensorByName(name string) (*Weat
 	return sensor, nil
 }
 
-func (registry *inmemorySensorRegistry) ExistSensorName(name string) bool {
+func (registry *inmemorySensorRegistry) ExistSensorName(name string) (bool, error) {
 	for _, s := range registry.weatherSensors {
 		if s.Name == name {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
-func (registry *inmemorySensorRegistry) ResolveSensorById(sensorId uuid.UUID) (*WeatherSensor, bool) {
+func (registry *inmemorySensorRegistry) ResolveSensorById(sensorId uuid.UUID) (*WeatherSensor, error) {
 	for _, s := range registry.weatherSensors {
 		if s.Id == sensorId {
-			return s, true
+			return s, nil
 		}
 	}
-	return nil, false
+	return nil, fmt.Errorf("sensor does not exist")
 }
 
-func (registry *inmemorySensorRegistry) ExistSensor(sensor *WeatherSensor) bool {
+func (registry *inmemorySensorRegistry) ExistSensor(sensor *WeatherSensor) (bool, error) {
 	for _, s := range registry.weatherSensors {
 		if s.Id == sensor.Id {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
 func (registry *inmemorySensorRegistry) GetSensors() ([]*WeatherSensor, error) {

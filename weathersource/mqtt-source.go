@@ -1,6 +1,7 @@
 package weathersource
 
 import (
+	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -106,10 +107,14 @@ func (source *mqttWeatherSource) publishDataValues() {
 			current := *source.lastWeatherDataPoints[0]
 			diff := time.Now().Sub(current.TimeStamp)
 			if diff >= source.config.MinDistToLastValue {
-				source.newWeatherData(current)
+				if err := source.newWeatherData(current); err != nil {
+					log.Fatal(err)
+					//if error than put the dataPoint to the end of the slice and try again later
+					dataPoint := source.lastWeatherDataPoints[0]
+					source.lastWeatherDataPoints = append(source.lastWeatherDataPoints, dataPoint)
+				}
 				source.lastWeatherDataPoints = source.lastWeatherDataPoints[1:]
 			}
-
 		}
 		time.Sleep(source.config.PublishInterval)
 	}
