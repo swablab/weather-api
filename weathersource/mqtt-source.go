@@ -17,8 +17,7 @@ var mqttTopicRegexPattern = "(^sensor/)([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F
 var regexTopic *regexp.Regexp = regexp.MustCompile(mqttTopicRegexPattern)
 
 type mqttWeatherSource struct {
-	url                   string
-	topic                 string
+	config                config.MqttConfig
 	mqttClient            mqtt.Client
 	lastWeatherDataPoints []*storage.WeatherData
 	weatherSource         WeatherSourceBase
@@ -29,31 +28,21 @@ func (source *mqttWeatherSource) Close() {
 	source.mqttClient.Disconnect(2)
 }
 
-//NewAnonymousMqttSource Factory function for mqttWeatherSource with anonymous authentication
-func NewAnonymousMqttSource(url, topic string) (*mqttWeatherSource, error) {
-	return newMqttSource(url, topic, "", "", true)
-}
-
 //NewMqttSource Factory function for mqttWeatherSource with authentication
-func NewMqttSource(url, topic, user, password string) (*mqttWeatherSource, error) {
-	return newMqttSource(url, topic, user, password, false)
-}
-
-//NewMqttSource Factory function for mqttWeatherSource
-func newMqttSource(url, topic, user, password string, anonymous bool) (*mqttWeatherSource, error) {
+func NewMqttSource(cfg config.MqttConfig) (*mqttWeatherSource, error) {
 	source := new(mqttWeatherSource)
-	source.url = url
+	source.config = cfg
 
-	opts := mqtt.NewClientOptions().AddBroker(url)
+	opts := mqtt.NewClientOptions().AddBroker(cfg.Host)
 
 	//mqtt
 	opts.SetKeepAlive(60 * time.Second)
 	opts.SetDefaultPublishHandler(source.mqttMessageHandler())
 	opts.SetPingTimeout(1 * time.Second)
 
-	if !anonymous {
-		opts.Username = user
-		opts.Password = password
+	if !cfg.AllowAnonymousAuthentication {
+		opts.Username = cfg.Username
+		opts.Password = cfg.Password
 	}
 
 	source.mqttClient = mqtt.NewClient(opts)
@@ -62,7 +51,7 @@ func newMqttSource(url, topic, user, password string, anonymous bool) (*mqttWeat
 		return nil, token.Error()
 	}
 
-	if token := source.mqttClient.Subscribe(topic, 2, nil); token.Wait() && token.Error() != nil {
+	if token := source.mqttClient.Subscribe(cfg.Topic, 2, nil); token.Wait() && token.Error() != nil {
 		return nil, token.Error()
 	}
 
@@ -116,13 +105,13 @@ func (source *mqttWeatherSource) publishDataValues() {
 		for len(source.lastWeatherDataPoints) != 0 {
 			current := *source.lastWeatherDataPoints[0]
 			diff := time.Now().Sub(current.TimeStamp)
-			if diff >= config.MqttMinDistToLastValue() {
+			if diff >= source.config.MinDistToLastValue {
 				source.newWeatherData(current)
 				source.lastWeatherDataPoints = source.lastWeatherDataPoints[1:]
 			}
 
 		}
-		time.Sleep(config.MqttPublishInterval())
+		time.Sleep(source.config.PublishInterval)
 	}
 
 }

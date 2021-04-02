@@ -6,125 +6,94 @@ import (
 	"time"
 )
 
-// const influx stuff
-const influxToken = "default-token"
-const influxWeatherBucket = "default-bucket"
-const influxOrganization = "default-org"
-const influxURL = "https://influx.default-address.com"
-
-//const mqtt stuff
-const mqttURL = "tcp://default-address.com:1883"
-const mqttTopic = "sensor/#"
-const defaultLocation = "default-location"
-const mqttUser = "weather-api"
-const mqttPassword = "weather-api"
-const useAnonymousMqttAuthentication = false
-const mqttPublishInterval = time.Second
-const mqttMinDistToLastValue = 250 * time.Millisecond
-
-//const mongodb stuff
-const mongodbURL = "mongodb://default-address.com:27017"
-const mongodbName = "weathersensors"
-const mongodbCollection = "sensordata"
-const mongodbUser = "mongoUser"
-const mongdbPassword = "mongoPassword"
-
-//other config stuff
-const allowUnregisteredSensors = false
-
-//influx config
-func GetInfluxUrl() string {
-	return getVariableWithDefault("WEATHER-API-INFLUX_URL", influxURL)
+type MongoConfig struct {
+	Host       string
+	Database   string
+	Username   string
+	Password   string
+	Collection string
 }
 
-func GetInfluxToken() string {
-	return getVariableWithDefault("WEATHER-API-INFLUX_TOKEN", influxToken)
+type InfluxConfig struct {
+	Host         string
+	Token        string
+	Organization string
+	Bucket       string
 }
 
-func GetInfluxOrganization() string {
-	return getVariableWithDefault("WEATHER-API-INFLUX_ORG", influxOrganization)
+type MqttConfig struct {
+	Host                         string
+	Topic                        string
+	Username                     string
+	Password                     string
+	PublishInterval              time.Duration
+	MinDistToLastValue           time.Duration
+	AllowAnonymousAuthentication bool
 }
 
-func GetInfluxBucket() string {
-	return getVariableWithDefault("WEATHER-API-INFLUX_BUCKET", influxWeatherBucket)
+var MongoConfiguration = MongoConfig{
+	Host:       getEnv("MONGO_HOST", "localhost:27017"),
+	Database:   getEnv("MONGO_DB", "weathersensors"),
+	Username:   getEnv("MONGO_USER", "admin"),
+	Password:   getEnv("MONGO_PASS", "admin"),
+	Collection: getEnv("MONGO_COLLECTION", "sensors"),
 }
 
-//mqtt config
-func GetMqttUrl() string {
-	return getVariableWithDefault("WEATHER-API-MQTT_URL", mqttURL)
+var InfluxConfiguration = InfluxConfig{
+	Host:         getEnv("INFLUX_HOST", "localhost:8086"),
+	Token:        getEnv("INFLUX_TOKEN", "token"),
+	Organization: getEnv("INFLUX_ORG", "org_name"),
+	Bucket:       getEnv("INFLUX_BUCKET", "bucket_name"),
 }
 
-func GetMqttTopic() string {
-	return getVariableWithDefault("WEATHER-API-MQTT_TOPIC", mqttTopic)
+var MqttConfiguration = MqttConfig{
+	Host:                         getEnv("MQTT_HOST", "localhost:1883"),
+	Topic:                        getEnv("MQTT_TOPIC", "sensor/#"),
+	Username:                     getEnv("MQTT_USER", "mqtt"),
+	Password:                     getEnv("MQTT_PASS", "mqtt"),
+	PublishInterval:              getEnvDuration("MQTT_PUBLISH_INTERVALL", time.Millisecond*2500),
+	MinDistToLastValue:           getEnvDuration("MQTT_MIN_DIST_LAST_VALUE", time.Millisecond*250),
+	AllowAnonymousAuthentication: getEnvBool("MQTT_ANONYMOUS", false),
 }
 
-func GetMqttUser() string {
-	return getVariableWithDefault("WEATHER-API-MQTT_USER", mqttTopic)
-}
-
-func GetMqttPassword() string {
-	return getVariableWithDefault("WEATHER-API-MQTT_PASSWORD", mqttTopic)
-}
-
-func UseAnonymousMqttAuthentication() bool {
-	return getVariableWithDefaultBool("WEATHER-API-ANONYMOUS_MQTT_AUTHENTICATION", useAnonymousMqttAuthentication)
-}
-
-func MqttPublishInterval() time.Duration {
-	interval, err := strconv.ParseInt(os.Getenv("WEATHER-API-MQTT_PUBLISH_INTERVAL"), 10, 64)
-	if err != nil {
-		return mqttPublishInterval
-	}
-	return time.Millisecond * time.Duration(interval)
-}
-
-func MqttMinDistToLastValue() time.Duration {
-	interval, err := strconv.ParseInt(os.Getenv("WEATHER-API-MQTT_MIN_DIST_TO_LAST_VALUE"), 10, 64)
-	if err != nil {
-		return mqttMinDistToLastValue
-	}
-	return time.Millisecond * time.Duration(interval)
-}
-
-//mongodb config
-func GetMongodbURL() string {
-	return getVariableWithDefault("WEATHER-API-MONGODB_URL", mongodbURL)
-}
-
-func GetMongodbName() string {
-	return getVariableWithDefault("WEATHER-API-MONGODB_NAME", mongodbName)
-}
-
-func GetMongodbCollection() string {
-	return getVariableWithDefault("WEATHER-API-MONGODB_COLLECTION", mongodbCollection)
-}
-
-func GetMongodbUserName() string {
-	return getVariableWithDefault("WEATHER-API-MONGODB_USER", mongodbUser)
-}
-
-func GetMongodbPassword() string {
-	return getVariableWithDefault("WEATHER-API-MONGODB_PASSWORD", mongdbPassword)
-}
-
-//common config
-func AllowUnregisteredSensors() bool {
-	return getVariableWithDefaultBool("WEATHER-API-ALLOW_UNREGISTERED_SENSORS", allowUnregisteredSensors)
-}
+var AllowUnregisteredSensors = getEnvBool("ALLOW_UNREGISTERED_SENSORS", false)
 
 //helper
-func getVariableWithDefault(variableKey, defaultValue string) string {
-	variable := os.Getenv(variableKey)
-	if len(variable) == 0 {
-		return defaultValue
+func getEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
 	}
-	return variable
+
+	return fallback
 }
 
-func getVariableWithDefaultBool(variableKey string, defaultValue bool) bool {
-	ok, err := strconv.ParseBool(os.Getenv(variableKey))
-	if err != nil {
-		return defaultValue
+func getEnvBool(key string, fallback bool) bool {
+
+	if value, ok := os.LookupEnv(key); ok {
+		if bValue, err := strconv.ParseBool(value); err == nil {
+			return bValue
+		}
 	}
-	return ok
+
+	return fallback
+}
+
+func getEnvInt(key string, fallback int64) int64 {
+	if value, ok := os.LookupEnv(key); ok {
+		if iValue, err := strconv.ParseInt(value, 10, 64); err == nil {
+			return iValue
+		}
+	}
+
+	return fallback
+}
+
+func getEnvDuration(key string, fallback time.Duration) time.Duration {
+	if value, ok := os.LookupEnv(key); ok {
+		if iValue, err := strconv.ParseInt(value, 10, 64); err == nil {
+			return time.Millisecond * time.Duration(iValue)
+		}
+	}
+
+	return fallback
 }

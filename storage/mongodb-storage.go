@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"time"
+	"weather-data/config"
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
@@ -19,10 +20,10 @@ type mongodbSensorRegistry struct {
 	client           *mongo.Client
 }
 
-func NewMongodbSensorRegistry(connection, database, collection, user, password string) (*mongodbSensorRegistry, error) {
+func NewMongodbSensorRegistry(mongoCfg config.MongoConfig) (*mongodbSensorRegistry, error) {
 	sensorRegistry := new(mongodbSensorRegistry)
 
-	options := options.Client().ApplyURI(connection).SetAuth(options.Credential{Username: user, Password: password})
+	options := options.Client().ApplyURI(mongoCfg.Host).SetAuth(options.Credential{Username: mongoCfg.Username, Password: mongoCfg.Password})
 
 	client, err := mongo.NewClient(options)
 	if err != nil {
@@ -44,8 +45,8 @@ func NewMongodbSensorRegistry(connection, database, collection, user, password s
 		return nil, err
 	}
 
-	weathersensorsDB := client.Database(database)
-	sensorRegistry.sensorCollection = weathersensorsDB.Collection(collection)
+	weathersensorsDB := client.Database(mongoCfg.Database)
+	sensorRegistry.sensorCollection = weathersensorsDB.Collection(mongoCfg.Collection)
 
 	return sensorRegistry, nil
 }

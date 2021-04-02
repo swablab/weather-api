@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"time"
+	"weather-data/config"
 
 	"github.com/google/uuid"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
@@ -11,22 +12,16 @@ import (
 
 //influxStorage is the Storage implementation for InfluxDB
 type influxStorage struct {
-	token        string
-	bucket       string
-	organization string
-	url          string
-	measurement  string
-	client       influxdb2.Client
+	config      config.InfluxConfig
+	measurement string
+	client      influxdb2.Client
 }
 
 //NewInfluxStorage Factory
-func NewInfluxStorage(token, bucket, organization, url string) (*influxStorage, error) {
+func NewInfluxStorage(cfg config.InfluxConfig) (*influxStorage, error) {
 	influx := new(influxStorage)
-	influx.bucket = bucket
-	influx.token = token
-	influx.organization = organization
-	influx.url = url
-	influx.client = influxdb2.NewClient(url, token)
+	influx.config = cfg
+	influx.client = influxdb2.NewClient(cfg.Host, cfg.Token)
 	influx.measurement = "data"
 	return influx, nil
 }
@@ -47,7 +42,7 @@ func (storage *influxStorage) Save(data WeatherData) error {
 		fields,
 		data.TimeStamp)
 
-	writeAPI := storage.client.WriteAPI(storage.organization, storage.bucket)
+	writeAPI := storage.client.WriteAPI(storage.config.Organization, storage.config.Bucket)
 	writeAPI.WritePoint(datapoint)
 	return nil
 }
@@ -85,13 +80,13 @@ func (storage *influxStorage) createFluxQuery(query *WeatherQuery) string {
 
 	fields = fmt.Sprintf(" and ( %v )", fields)
 
-	fluxQuery := fmt.Sprintf("from(bucket:\"%v\")|> range(start: %v, stop: %v) |> filter(fn: (r) => r._measurement == \"%v\" and r.sensorId == \"%v\" %v)", storage.bucket, query.Start.Format(time.RFC3339), query.End.Format(time.RFC3339), storage.measurement, query.SensorId, fields)
+	fluxQuery := fmt.Sprintf("from(bucket:\"%v\")|> range(start: %v, stop: %v) |> filter(fn: (r) => r._measurement == \"%v\" and r.sensorId == \"%v\" %v)", storage.config.Bucket, query.Start.Format(time.RFC3339), query.End.Format(time.RFC3339), storage.measurement, query.SensorId, fields)
 	return fluxQuery
 }
 
 func (storage *influxStorage) executeFluxQuery(query string) ([]*WeatherData, error) {
 
-	queryAPI := storage.client.QueryAPI(storage.organization)
+	queryAPI := storage.client.QueryAPI(storage.config.Organization)
 	result, err := queryAPI.Query(context.Background(), query)
 
 	if err != nil {
