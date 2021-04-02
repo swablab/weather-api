@@ -58,6 +58,7 @@ func NewMqttSource(cfg config.MqttConfig) (*mqttWeatherSource, error) {
 
 	go source.publishDataValues()
 
+	log.Print("successfully connected to mqtt-broker")
 	return source, nil
 }
 

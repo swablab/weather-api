@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 	"weather-data/config"
 
@@ -23,6 +24,7 @@ func NewInfluxStorage(cfg config.InfluxConfig) (*influxStorage, error) {
 	influx.config = cfg
 	influx.client = influxdb2.NewClient(cfg.Host, cfg.Token)
 	influx.measurement = "data"
+	log.Print("Successfully created influx-client")
 	return influx, nil
 }
 
@@ -44,6 +46,7 @@ func (storage *influxStorage) Save(data WeatherData) error {
 
 	writeAPI := storage.client.WriteAPI(storage.config.Organization, storage.config.Bucket)
 	writeAPI.WritePoint(datapoint)
+	log.Print("Written weather data point to influx-db")
 	return nil
 }
 

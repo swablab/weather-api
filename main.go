@@ -16,6 +16,8 @@ var weatherSource weathersource.WeatherSource
 var weatherAPI api.WeatherAPI
 
 func main() {
+	log.SetOutput(os.Stdout)
+
 	//setup new sensorRegistry -> MongodbSensorRegistry
 	var err error
 	if sensorRegistry, err = storage.NewMongodbSensorRegistry(config.MongoConfiguration); err != nil {
@@ -44,6 +46,7 @@ func main() {
 	defer weatherAPI.Close()
 	weatherAPI.AddNewWeatherDataCallback(handleNewWeatherData)
 
+	log.Print("Application is running")
 	err = weatherAPI.Start()
 	if err != nil {
 		log.Fatal(err)
@@ -54,6 +57,7 @@ func main() {
 func handleNewWeatherData(wd storage.WeatherData) error {
 	_, err := sensorRegistry.ResolveSensorById(wd.SensorId)
 	if !config.AllowUnregisteredSensors && err != nil {
+		log.Print("discarded invalid weatherdata")
 		return fmt.Errorf("could not resolve sensor")
 	}
 	weatherStorage.Save(wd)

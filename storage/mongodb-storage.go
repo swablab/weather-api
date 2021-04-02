@@ -48,6 +48,8 @@ func NewMongodbSensorRegistry(mongoCfg config.MongoConfig) (*mongodbSensorRegist
 	weathersensorsDB := client.Database(mongoCfg.Database)
 	sensorRegistry.sensorCollection = weathersensorsDB.Collection(mongoCfg.Collection)
 
+	log.Print("successfully created mongodb connection")
+
 	return sensorRegistry, nil
 }
 
