@@ -10,6 +10,19 @@ import (
 	"github.com/google/uuid"
 )
 
+type SensorValueType string
+
+const (
+	Temperature SensorValueType = "temperature"
+	Pressure    SensorValueType = "pressure"
+	Humidity    SensorValueType = "humidity"
+	Co2Level    SensorValueType = "co2level"
+)
+
+func GetSensorValueTypes() []SensorValueType {
+	return []SensorValueType{Temperature, Pressure, Humidity, Co2Level}
+}
+
 //WeatherStorage interface for different storage-implementations of weather data
 type WeatherStorage interface {
 	Save(WeatherData) error
@@ -27,38 +40,37 @@ type SensorRegistry interface {
 
 //WeatherData type
 type WeatherData struct {
-	Humidity    float64   `json:"humidity"`
-	Pressure    float64   `json:"pressure"`
-	Temperature float64   `json:"temperature"`
-	CO2Level    float64   `json:"co2level"`
-	SensorId    uuid.UUID `json:"sensorId"`
-	TimeStamp   time.Time `json:"timestamp"`
+	Values    map[SensorValueType]float64
+	SensorId  uuid.UUID `json:"sensorId"`
+	TimeStamp time.Time `json:"timestamp"`
 }
 
-func (data *WeatherData) GetQueriedValues(query *WeatherQuery) map[string]string {
-	result := map[string]string{
+func (data *WeatherData) OnlyQueriedValues(query *WeatherQuery) *WeatherData {
+	for _, sensorValueType := range GetSensorValueTypes() {
+		if !query.Values[sensorValueType] {
+			delete(data.Values, sensorValueType)
+		}
+	}
+	return data
+}
+
+func (data *WeatherData) ToStringMap() map[string]string {
+	mappedData := map[string]string{
 		"sensorId":  data.SensorId.String(),
-		"timestamp": data.TimeStamp.String(),
+		"timeStamp": data.TimeStamp.String(),
 	}
-	if query.Temperature {
-		result["temperature"] = strconv.FormatFloat(data.Temperature, 'f', -1, 32)
+
+	for sensorValueType, value := range data.Values {
+		mappedData[string(sensorValueType)] = strconv.FormatFloat(value, 'f', -1, 64)
 	}
-	if query.Pressure {
-		result["pressure"] = strconv.FormatFloat(data.Pressure, 'f', -1, 32)
-	}
-	if query.Co2Level {
-		result["co2level"] = strconv.FormatFloat(data.CO2Level, 'f', -1, 32)
-	}
-	if query.Humidity {
-		result["humidity"] = strconv.FormatFloat(data.Humidity, 'f', -1, 32)
-	}
-	return result
+
+	return mappedData
 }
 
 func GetOnlyQueriedFields(dataPoints []*WeatherData, query *WeatherQuery) []map[string]string {
 	var result []map[string]string
 	for _, data := range dataPoints {
-		result = append(result, data.GetQueriedValues(query))
+		result = append(result, data.OnlyQueriedValues(query).ToStringMap())
 	}
 	return result
 }
@@ -73,23 +85,20 @@ type WeatherSensor struct {
 }
 
 type WeatherQuery struct {
-	Start       time.Time
-	End         time.Time
-	SensorId    uuid.UUID
-	Temperature bool
-	Humidity    bool
-	Pressure    bool
-	Co2Level    bool
+	Start    time.Time
+	End      time.Time
+	SensorId uuid.UUID
+	Values   map[SensorValueType]bool
 }
 
-func (data *WeatherQuery) Init() {
-	data.Start = time.Now().Add(-1 * time.Hour * 24 * 14)
-	data.End = time.Now()
-	data.SensorId = uuid.Nil
-	data.Temperature = true
-	data.Humidity = true
-	data.Pressure = true
-	data.Co2Level = true
+func (query *WeatherQuery) Init() {
+	query.Start = time.Now().Add(-1 * time.Hour * 24 * 14)
+	query.End = time.Now()
+	query.SensorId = uuid.Nil
+	query.Values = make(map[SensorValueType]bool)
+	for _, sensorValueType := range GetSensorValueTypes() {
+		query.Values[sensorValueType] = true
+	}
 }
 
 func ParseFromUrlQuery(query url.Values) (*WeatherQuery, error) {
@@ -98,10 +107,6 @@ func ParseFromUrlQuery(query url.Values) (*WeatherQuery, error) {
 
 	start := query.Get("start")
 	end := query.Get("end")
-	temperature := query.Get("temperature")
-	humidity := query.Get("humidity")
-	pressure := query.Get("pressure")
-	co2level := query.Get("co2level")
 
 	if len(start) != 0 {
 		if tval, err := time.Parse(time.RFC3339, start); err == nil {
@@ -121,20 +126,11 @@ func ParseFromUrlQuery(query url.Values) (*WeatherQuery, error) {
 		}
 	}
 
-	if bval, err := strconv.ParseBool(temperature); err == nil {
-		result.Temperature = bval
-	}
-
-	if bval, err := strconv.ParseBool(humidity); err == nil {
-		result.Humidity = bval
-	}
-
-	if bval, err := strconv.ParseBool(pressure); err == nil {
-		result.Pressure = bval
-	}
-
-	if bval, err := strconv.ParseBool(co2level); err == nil {
-		result.Co2Level = bval
+	for _, sensorValueType := range GetSensorValueTypes() {
+		queryParam := query.Get(string(sensorValueType))
+		if bval, err := strconv.ParseBool(queryParam); err == nil {
+			result.Values[sensorValueType] = bval
+		}
 	}
 
 	return result, nil
@@ -144,10 +140,10 @@ func ParseFromUrlQuery(query url.Values) (*WeatherQuery, error) {
 func NewRandomWeatherData(sensorId uuid.UUID) WeatherData {
 	rand.Seed(time.Now().UnixNano())
 	var data WeatherData
-	data.Humidity = rand.Float64() * 100
-	data.Pressure = rand.Float64()*80 + 960
-	data.Temperature = rand.Float64()*40 - 5
-	data.CO2Level = rand.Float64()*50 + 375
+	data.Values[Humidity] = rand.Float64() * 100
+	data.Values[Pressure] = rand.Float64()*80 + 960
+	data.Values[Temperature] = rand.Float64()*40 - 5
+	data.Values[Co2Level] = rand.Float64()*50 + 375
 	data.SensorId = sensorId
 	data.TimeStamp = time.Now()
 	return data

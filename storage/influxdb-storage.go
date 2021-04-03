@@ -33,11 +33,11 @@ func (storage *influxStorage) Save(data WeatherData) error {
 	tags := map[string]string{
 		"sensorId": data.SensorId.String()}
 
-	fields := map[string]interface{}{
-		"temperature": data.Temperature,
-		"humidity":    data.Humidity,
-		"pressure":    data.Pressure,
-		"co2level":    data.CO2Level}
+	fields := make(map[string]interface{})
+
+	for k, v := range data.Values {
+		fields[string(k)] = v
+	}
 
 	datapoint := influxdb2.NewPoint(storage.measurement,
 		tags,
@@ -46,7 +46,6 @@ func (storage *influxStorage) Save(data WeatherData) error {
 
 	writeAPI := storage.client.WriteAPI(storage.config.Organization, storage.config.Bucket)
 	writeAPI.WritePoint(datapoint)
-	log.Print("Written weather data point to influx-db")
 	return nil
 }
 
@@ -61,24 +60,11 @@ func (storage *influxStorage) createFluxQuery(query *WeatherQuery) string {
 	fields := ""
 	concat := ""
 
-	if query.Temperature {
-		fields = fmt.Sprintf("%v %v r._field == \"temperature\"", fields, concat)
-		concat = "or"
-	}
-
-	if query.Humidity {
-		fields = fmt.Sprintf("%v %v r._field == \"humidity\"", fields, concat)
-		concat = "or"
-	}
-
-	if query.Pressure {
-		fields = fmt.Sprintf("%v %v r._field == \"pressure\"", fields, concat)
-		concat = "or"
-	}
-
-	if query.Co2Level {
-		fields = fmt.Sprintf("%v %v r._field == \"co2level\"", fields, concat)
-		concat = "or"
+	for _, sensorValueType := range GetSensorValueTypes() {
+		if query.Values[sensorValueType] {
+			fields = fmt.Sprintf("%v %v r._field == \"%v\"", fields, concat, string(sensorValueType))
+			concat = "or"
+		}
 	}
 
 	fields = fmt.Sprintf(" and ( %v )", fields)
@@ -112,17 +98,10 @@ func (storage *influxStorage) executeFluxQuery(query string) ([]*WeatherData, er
 
 		data, contained := containsWeatherData(queryResults, sensorId, timestamp)
 
-		if result.Record().Field() == "temperature" {
-			data.Temperature = result.Record().Value().(float64)
-		}
-		if result.Record().Field() == "pressure" {
-			data.Pressure = result.Record().Value().(float64)
-		}
-		if result.Record().Field() == "humidity" {
-			data.Humidity = result.Record().Value().(float64)
-		}
-		if result.Record().Field() == "co2level" {
-			data.CO2Level = result.Record().Value().(float64)
+		for _, sensorValueType := range GetSensorValueTypes() {
+			if result.Record().Field() == string(sensorValueType) {
+				data.Values[sensorValueType] = result.Record().Value().(float64)
+			}
 		}
 
 		if !contained {
@@ -142,6 +121,7 @@ func containsWeatherData(weatherData []*WeatherData, sensorId uuid.UUID, timesta
 		}
 	}
 	var newData WeatherData
+	newData.Values = make(map[SensorValueType]float64)
 	return &newData, false
 }
 

@@ -107,12 +107,16 @@ func (api *weatherRestApi) addDataHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	fmt.Println(r.Body)
+
 	var data storage.WeatherData
 	err := json.NewDecoder(r.Body).Decode(&data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	fmt.Println(data)
 
 	err = api.addNewWeatherData(data)
 	if err != nil {
