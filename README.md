@@ -1,6 +1,11 @@
 # weather-api
 
+Ziel des Projektes weather-api ist es, eine einfache API für die Erhebung von Wetterdaten zu entwickeln. Kleine, selbstgebaute Wetterstationen können ihre Messergebnisse an die weather-api senden. Dort werden diese Verarbeitet, persistiert und können später wieder abgefragt werden. 
+
+
 ## Benötigte Fremdapplikationen
+Für den Betrieb der weather-api werden einige Fremdapplikationen benötigt.
+
 ### MongoDB
 In der MongoDB Datenbank werden Sensordaten der Sensoren (z.B. Name, ID, Location, ...) gespeichert.
 
@@ -33,7 +38,7 @@ MQTT_ANONYMOUS | false | Anonyme Anmeldung am MQTT-Broker verwenden (ohne Userna
 ALLOW_UNREGISTERED_SENSORS | false | Wetterdaten nicht registrierter Sensoren erlauben
 
 
-## Applikation unter Windows ausführen
+## Applikation lokal ausführen
 
 Eine lokal ausgeführte Test-Instanz der Wetter-API muss mit URLs, Tokens und ähnlichem über Umgebungsvariablen konfiguriert werden.  
 Das PowerShell-Skript `run_default.ps1` ist eine Vorlage für den start einer eigenen Instanz, lediglich die Umgebungsvariablen müsssen hierzu angepasst werden. Am besten wird der Inhalt dieses Skriptes in ein weiteres Skript (z.B. `run.ps1`) kopiert. Dieses wird von Git ignoriert, geheime Zugangsdaten (z.B. zu MQTT Broker, InfluxDB) werden so nicht ins Git-Repository eingefügt.
