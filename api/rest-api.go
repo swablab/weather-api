@@ -80,7 +80,7 @@ func (api *weatherRestApi) getData(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", http.StatusBadRequest)
 		return
 	}
-	res := storage.GetOnlyQueriedFields(data, query)
+	res := storage.ToMap(storage.GetOnlyQueriedFields(data, query))
 	json.NewEncoder(w).Encode(res)
 }
 
@@ -107,21 +107,28 @@ func (api *weatherRestApi) addDataHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	fmt.Println(r.Body)
+	w.Header().Add("content-type", "application/json")
 
-	var data storage.WeatherData
+	var data = make(map[string]interface{})
 	err := json.NewDecoder(r.Body).Decode(&data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	fmt.Println(data)
-
-	err = api.addNewWeatherData(data)
+	weatherData, err := storage.FromMap(data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
+
+	err = api.addNewWeatherData(*weatherData)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	json.NewEncoder(w).Encode(weatherData.ToMap())
 }
 
 func (api *weatherRestApi) homePageHandler(w http.ResponseWriter, r *http.Request) {

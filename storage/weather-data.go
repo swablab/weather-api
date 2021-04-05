@@ -19,6 +19,11 @@ const (
 	Co2Level    SensorValueType = "co2level"
 )
 
+const (
+	SensorId  string = "sensorId"
+	TimeStamp string = "timeStamp"
+)
+
 func GetSensorValueTypes() []SensorValueType {
 	return []SensorValueType{Temperature, Pressure, Humidity, Co2Level}
 }
@@ -54,23 +59,71 @@ func (data *WeatherData) OnlyQueriedValues(query *WeatherQuery) *WeatherData {
 	return data
 }
 
-func (data *WeatherData) ToStringMap() map[string]string {
-	mappedData := map[string]string{
+func (data *WeatherData) ToMap() map[string]interface{} {
+	mappedData := map[string]interface{}{
 		"sensorId":  data.SensorId.String(),
 		"timeStamp": data.TimeStamp.String(),
 	}
 
 	for sensorValueType, value := range data.Values {
-		mappedData[string(sensorValueType)] = strconv.FormatFloat(value, 'f', -1, 64)
+		mappedData[string(sensorValueType)] = value //strconv.FormatFloat(value, 'f', -1, 64)
 	}
 
 	return mappedData
 }
 
-func GetOnlyQueriedFields(dataPoints []*WeatherData, query *WeatherQuery) []map[string]string {
-	var result []map[string]string
+func FromMap(value map[string]interface{}) (*WeatherData, error) {
+	var data = new(WeatherData)
+	data.Values = make(map[SensorValueType]float64)
+	var err error
+
+	copy := make(map[string]interface{})
+	for key, value := range value {
+		copy[key] = value
+	}
+
+	idString, ok := copy[SensorId].(string)
+	if !ok {
+		return nil, fmt.Errorf("sensorId must be of type string")
+	}
+	data.SensorId, err = uuid.Parse(idString)
+	if err != nil {
+		return nil, err
+	}
+	delete(copy, SensorId)
+
+	timeStampString, ok := copy[TimeStamp].(string)
+	if !ok {
+		return nil, fmt.Errorf("timeStamp must be of type string")
+	}
+	data.TimeStamp, err = time.Parse(time.RFC3339, timeStampString)
+	if err != nil {
+		return nil, err
+	}
+	delete(copy, TimeStamp)
+
+	for key, val := range copy {
+		switch v := val.(type) {
+		case float64:
+			data.Values[SensorValueType(key)] = float64(v)
+		default:
+		}
+	}
+
+	return data, nil
+}
+
+func GetOnlyQueriedFields(dataPoints []*WeatherData, query *WeatherQuery) []*WeatherData {
 	for _, data := range dataPoints {
-		result = append(result, data.OnlyQueriedValues(query).ToStringMap())
+		data.OnlyQueriedValues(query)
+	}
+	return dataPoints
+}
+
+func ToMap(dataPoints []*WeatherData) []map[string]interface{} {
+	var result = make([]map[string]interface{}, 0)
+	for _, data := range dataPoints {
+		result = append(result, data.ToMap())
 	}
 	return result
 }
