@@ -2,7 +2,7 @@ package storage
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"log"
 	"time"
 	"weather-data/config"
@@ -59,7 +59,7 @@ func (registry *mongodbSensorRegistry) RegisterSensorByName(name string) (*Weath
 		return nil, err
 	}
 	if exist {
-		return nil, fmt.Errorf("Sensorname already exists")
+		return nil, errors.New("sensorname already exists")
 	}
 	sensor := new(WeatherSensor)
 	sensor.Name = name
@@ -96,7 +96,7 @@ func (registry *mongodbSensorRegistry) ResolveSensorById(sensorId uuid.UUID) (*W
 			return s, nil
 		}
 	}
-	return nil, fmt.Errorf("sensor does not exist")
+	return nil, errors.New("sensor does not exist")
 }
 
 func (registry *mongodbSensorRegistry) ExistSensor(sensor *WeatherSensor) (bool, error) {

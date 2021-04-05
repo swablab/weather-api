@@ -31,9 +31,10 @@ func NewRestAPI(connection string, weatherStorage storage.WeatherStorage, sensor
 //Start a new Rest-API instance
 func (api *weatherRestApi) Start() error {
 	handler := api.handleRequests()
-	return http.ListenAndServe(api.connection, handler) // http.ListenAndServe(api.connection, handler)
+	return http.ListenAndServe(api.connection, handler)
 }
 
+//Close the rest api
 func (api *weatherRestApi) Close() {
 }
 
@@ -77,24 +78,24 @@ func (api *weatherRestApi) getData(w http.ResponseWriter, r *http.Request) {
 
 	data, err := api.weaterStorage.GetData(query)
 	if err != nil {
-		http.Error(w, "", http.StatusBadRequest)
+		http.Error(w, "error executing query", http.StatusBadRequest)
 		return
 	}
+
 	res := storage.ToMap(storage.GetOnlyQueriedFields(data, query))
 	json.NewEncoder(w).Encode(res)
 }
 
 func (api *weatherRestApi) randomWeatherHandler(w http.ResponseWriter, r *http.Request) {
-	datapoint := storage.NewRandomWeatherData(uuid.Nil)
-
 	w.Header().Add("content-type", "application/json")
-	json.NewEncoder(w).Encode(datapoint)
+	json.NewEncoder(w).Encode(storage.NewRandomWeatherData())
 }
 
 func (api *weatherRestApi) randomWeatherListHandler(w http.ResponseWriter, r *http.Request) {
-	var datapoints = make([]storage.WeatherData, 0)
+	var datapoints = make([]*storage.WeatherData, 0)
+
 	for i := 0; i < 10; i++ {
-		datapoints = append(datapoints, storage.NewRandomWeatherData(uuid.Nil))
+		datapoints = append(datapoints, storage.NewRandomWeatherData())
 	}
 
 	w.Header().Add("content-type", "application/json")

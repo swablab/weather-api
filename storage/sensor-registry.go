@@ -1,0 +1,20 @@
+package storage
+
+import "github.com/google/uuid"
+
+type SensorRegistry interface {
+	RegisterSensorByName(string) (*WeatherSensor, error)
+	ExistSensor(*WeatherSensor) (bool, error)
+	ResolveSensorById(uuid.UUID) (*WeatherSensor, error)
+	GetSensors() ([]*WeatherSensor, error)
+	Close() error
+}
+
+//WeatherSensor is the data for a new Sensorregistration
+type WeatherSensor struct {
+	Name      string
+	Id        uuid.UUID
+	Location  string
+	Longitude float64
+	Latitude  float64
+}

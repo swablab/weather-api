@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/google/uuid"
 )
@@ -21,7 +21,7 @@ func (registry *inmemorySensorRegistry) RegisterSensorByName(name string) (*Weat
 		return nil, err
 	}
 	if exist {
-		return nil, fmt.Errorf("Sensorname already exists")
+		return nil, errors.New("sensorname already exists")
 	}
 	sensor := new(WeatherSensor)
 	sensor.Name = name
@@ -45,7 +45,7 @@ func (registry *inmemorySensorRegistry) ResolveSensorById(sensorId uuid.UUID) (*
 			return s, nil
 		}
 	}
-	return nil, fmt.Errorf("sensor does not exist")
+	return nil, errors.New("sensor does not exist")
 }
 
 func (registry *inmemorySensorRegistry) ExistSensor(sensor *WeatherSensor) (bool, error) {

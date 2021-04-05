@@ -77,8 +77,7 @@ func (source *mqttWeatherSource) mqttMessageHandler() mqtt.MessageHandler {
 		lastWeatherData, found := source.getUnwrittenDatapoints(sensorId)
 
 		if !found {
-			lastWeatherData = new(storage.WeatherData)
-			lastWeatherData.Values = make(map[storage.SensorValueType]float64)
+			lastWeatherData = storage.NewWeatherData()
 			lastWeatherData.SensorId = sensorId
 			source.lastWeatherDataPoints = append(source.lastWeatherDataPoints, lastWeatherData)
 		}
@@ -91,15 +90,6 @@ func (source *mqttWeatherSource) mqttMessageHandler() mqtt.MessageHandler {
 		sensorValueType := storage.SensorValueType(regexTopic.FindStringSubmatch(msg.Topic())[3])
 		lastWeatherData.Values[sensorValueType] = value
 		lastWeatherData.TimeStamp = time.Now()
-
-		/* only use predefined sensorValueTypes
-		for _, sensorValueType := range storage.GetSensorValueTypes() {
-			if strings.HasSuffix(msg.Topic(), string(sensorValueType)) {
-				lastWeatherData.Values[sensorValueType], _ = strconv.ParseFloat(string(msg.Payload()), 64)
-				lastWeatherData.TimeStamp = time.Now()
-			}
-		}
-		*/
 	}
 }
 
@@ -107,7 +97,7 @@ func (source *mqttWeatherSource) publishDataValues() {
 	for {
 		for len(source.lastWeatherDataPoints) != 0 {
 			current := *source.lastWeatherDataPoints[0]
-			diff := time.Now().Sub(current.TimeStamp)
+			diff := time.Since(current.TimeStamp)
 			if diff >= source.config.MinDistToLastValue {
 				if err := source.newWeatherData(current); err != nil {
 					log.Fatal(err)
@@ -120,7 +110,6 @@ func (source *mqttWeatherSource) publishDataValues() {
 		}
 		time.Sleep(source.config.PublishInterval)
 	}
-
 }
 
 func (source *mqttWeatherSource) getUnwrittenDatapoints(sensorId uuid.UUID) (*storage.WeatherData, bool) {
