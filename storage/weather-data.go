@@ -56,8 +56,8 @@ func NewWeatherData() *WeatherData {
 
 //OnlyQueriedValues remove all values not contained by the WeatherQuery
 func (data *WeatherData) OnlyQueriedValues(query *WeatherQuery) *WeatherData {
-	for _, sensorValueType := range GetSensorValueTypes() {
-		if !query.Values[sensorValueType] {
+	for sensorValueType, value := range query.Values {
+		if !value {
 			delete(data.Values, sensorValueType)
 		}
 	}

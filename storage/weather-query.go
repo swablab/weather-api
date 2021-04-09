@@ -57,10 +57,12 @@ func ParseFromUrlQuery(query url.Values) (*WeatherQuery, error) {
 		}
 	}
 
-	for _, sensorValueType := range GetSensorValueTypes() {
-		queryParam := query.Get(string(sensorValueType))
-		if bval, err := strconv.ParseBool(queryParam); err == nil {
-			result.Values[sensorValueType] = bval
+	for k, v := range query {
+		if k == "start" || k == "end" {
+			continue
+		}
+		if bval, err := strconv.ParseBool(v[0]); err == nil {
+			result.Values[SensorValueType(k)] = bval
 		}
 	}
 

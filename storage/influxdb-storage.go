@@ -23,7 +23,7 @@ func NewInfluxStorage(cfg config.InfluxConfig) (*influxStorage, error) {
 	influx := new(influxStorage)
 	influx.config = cfg
 	influx.client = influxdb2.NewClient(cfg.Host, cfg.Token)
-	influx.measurement = "data"
+	influx.measurement = "weather-data"
 	log.Print("Successfully created influx-client")
 	return influx, nil
 }
@@ -60,8 +60,8 @@ func (storage *influxStorage) createFluxQuery(query *WeatherQuery) string {
 	fields := ""
 	concat := ""
 
-	for _, sensorValueType := range GetSensorValueTypes() {
-		if query.Values[sensorValueType] {
+	for sensorValueType, value := range query.Values {
+		if value {
 			fields = fmt.Sprintf("%v %v r._field == \"%v\"", fields, concat, string(sensorValueType))
 			concat = "or"
 		}
@@ -98,11 +98,7 @@ func (storage *influxStorage) executeFluxQuery(query string) ([]*WeatherData, er
 
 		data, contained := containsWeatherData(queryResults, sensorId, timestamp)
 
-		for _, sensorValueType := range GetSensorValueTypes() {
-			if result.Record().Field() == string(sensorValueType) {
-				data.Values[sensorValueType] = result.Record().Value().(float64)
-			}
-		}
+		data.Values[SensorValueType(result.Record().Field())] = result.Record().Value().(float64)
 
 		if !contained {
 			data.SensorId = sensorId
