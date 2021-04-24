@@ -4,7 +4,8 @@ import "github.com/google/uuid"
 
 type SensorRegistry interface {
 	RegisterSensorByName(string) (*WeatherSensor, error)
-	ExistSensor(*WeatherSensor) (bool, error)
+	ExistSensor(sensorId uuid.UUID) (bool, error)
+	ExistSensorName(name string) (bool, error)
 	ResolveSensorById(uuid.UUID) (*WeatherSensor, error)
 	DeleteSensor(uuid.UUID) error
 	UpdateSensor(*WeatherSensor) error

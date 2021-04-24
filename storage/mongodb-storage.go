@@ -72,45 +72,45 @@ func (registry *mongodbSensorRegistry) RegisterSensorByName(name string) (*Weath
 }
 
 func (registry *mongodbSensorRegistry) ExistSensorName(name string) (bool, error) {
-	sensors, err := registry.GetSensors()
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	cursor, err := registry.sensorCollection.Find(ctx, bson.M{"name": name})
 	if err != nil {
 		log.Fatal(err)
 		return false, err
 	}
-	for _, s := range sensors {
-		if s.Name == name {
-			return true, nil
-		}
-	}
-	return false, nil
+
+	return cursor.Next(ctx), nil
 }
 
 func (registry *mongodbSensorRegistry) ResolveSensorById(sensorId uuid.UUID) (*WeatherSensor, error) {
-	sensors, err := registry.GetSensors()
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	cursor, err := registry.sensorCollection.Find(ctx, bson.M{"id": sensorId})
 	if err != nil {
 		log.Fatal(err)
 		return nil, err
 	}
-	for _, s := range sensors {
-		if s.Id == sensorId {
-			return s, nil
-		}
+
+	if !cursor.Next(ctx) {
+		return nil, errors.New("sensor does not exist")
 	}
-	return nil, errors.New("sensor does not exist")
+
+	var sensor *WeatherSensor
+	if err = cursor.Decode(&sensor); err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
+	return sensor, nil
 }
 
-func (registry *mongodbSensorRegistry) ExistSensor(sensor *WeatherSensor) (bool, error) {
-	sensors, err := registry.GetSensors()
+func (registry *mongodbSensorRegistry) ExistSensor(sensorId uuid.UUID) (bool, error) {
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	cursor, err := registry.sensorCollection.Find(ctx, bson.M{"id": sensorId})
 	if err != nil {
 		log.Fatal(err)
 		return false, err
 	}
-	for _, s := range sensors {
-		if s.Id == sensor.Id {
-			return true, nil
-		}
-	}
-	return false, nil
+
+	return cursor.Next(ctx), nil
 }
 
 func (registry *mongodbSensorRegistry) GetSensors() ([]*WeatherSensor, error) {

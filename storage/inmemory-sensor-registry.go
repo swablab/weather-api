@@ -48,9 +48,9 @@ func (registry *inmemorySensorRegistry) ResolveSensorById(sensorId uuid.UUID) (*
 	return nil, errors.New("sensor does not exist")
 }
 
-func (registry *inmemorySensorRegistry) ExistSensor(sensor *WeatherSensor) (bool, error) {
+func (registry *inmemorySensorRegistry) ExistSensor(sensorId uuid.UUID) (bool, error) {
 	for _, s := range registry.weatherSensors {
-		if s.Id == sensor.Id {
+		if s.Id == sensorId {
 			return true, nil
 		}
 	}
