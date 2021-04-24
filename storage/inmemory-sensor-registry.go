@@ -57,10 +57,35 @@ func (registry *inmemorySensorRegistry) ExistSensor(sensor *WeatherSensor) (bool
 	return false, nil
 }
 
+func (registry *inmemorySensorRegistry) DeleteSensor(sensorId uuid.UUID) error {
+	for i, s := range registry.weatherSensors {
+		if s.Id == sensorId {
+			registry.weatherSensors = remove(registry.weatherSensors, i)
+			return nil
+		}
+	}
+	return nil
+}
+
+func (registry *inmemorySensorRegistry) UpdateSensor(sensor *WeatherSensor) error {
+	for i, s := range registry.weatherSensors {
+		if s.Id == sensor.Id {
+			registry.weatherSensors[i] = sensor
+		}
+	}
+
+	return nil
+}
+
 func (registry *inmemorySensorRegistry) GetSensors() ([]*WeatherSensor, error) {
 	return registry.weatherSensors, nil
 }
 
 func (registry *inmemorySensorRegistry) Close() error {
 	return nil
+}
+
+func remove(s []*WeatherSensor, i int) []*WeatherSensor {
+	s[len(s)-1], s[i] = s[i], s[len(s)-1]
+	return s[:len(s)-1]
 }
