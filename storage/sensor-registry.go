@@ -6,6 +6,8 @@ type SensorRegistry interface {
 	RegisterSensorByName(string) (*WeatherSensor, error)
 	ExistSensor(*WeatherSensor) (bool, error)
 	ResolveSensorById(uuid.UUID) (*WeatherSensor, error)
+	DeleteSensor(uuid.UUID) error
+	UpdateSensor(*WeatherSensor) error
 	GetSensors() ([]*WeatherSensor, error)
 	Close() error
 }

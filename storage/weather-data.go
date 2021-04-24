@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"fmt"
+	"errors"
 	"math/rand"
 	"time"
 
@@ -89,19 +89,23 @@ func FromMap(value map[string]interface{}) (*WeatherData, error) {
 		copy[key] = value
 	}
 
+	_, exists := copy[SensorId]
 	idString, ok := copy[SensorId].(string)
-	if !ok {
-		return nil, fmt.Errorf("sensorId must be of type string")
+	if exists && !ok {
+		return nil, errors.New("sensorId must be of type string")
 	}
-	data.SensorId, err = uuid.Parse(idString)
-	if err != nil {
-		return nil, err
+
+	if exists {
+		data.SensorId, err = uuid.Parse(idString)
+		if err != nil {
+			return nil, err
+		}
+		delete(copy, SensorId)
 	}
-	delete(copy, SensorId)
 
 	timeStampString, ok := copy[TimeStamp].(string)
 	if !ok {
-		return nil, fmt.Errorf("timeStamp must be of type string")
+		return nil, errors.New("timeStamp must be of type string")
 	}
 	data.TimeStamp, err = time.Parse(time.RFC3339, timeStampString)
 	if err != nil {

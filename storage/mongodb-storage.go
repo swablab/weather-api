@@ -130,6 +130,29 @@ func (registry *mongodbSensorRegistry) GetSensors() ([]*WeatherSensor, error) {
 	return readData, nil
 }
 
+func (registry *mongodbSensorRegistry) DeleteSensor(sensorId uuid.UUID) error {
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	_, err := registry.sensorCollection.DeleteOne(ctx, bson.M{"id": sensorId})
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	return nil
+}
+
+func (registry *mongodbSensorRegistry) UpdateSensor(sensor *WeatherSensor) error {
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	_, err := registry.sensorCollection.ReplaceOne(ctx,
+		bson.M{"id": sensor.Id},
+		sensor)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+	return nil
+}
+
 func (registry *mongodbSensorRegistry) Close() error {
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	err := registry.client.Disconnect(ctx)
