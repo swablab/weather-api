@@ -132,10 +132,13 @@ func (registry *mongodbSensorRegistry) GetSensors() ([]*WeatherSensor, error) {
 
 func (registry *mongodbSensorRegistry) DeleteSensor(sensorId uuid.UUID) error {
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	_, err := registry.sensorCollection.DeleteOne(ctx, bson.M{"id": sensorId})
+	res, err := registry.sensorCollection.DeleteOne(ctx, bson.M{"id": sensorId})
 	if err != nil {
 		log.Fatal(err)
 		return err
+	}
+	if res.DeletedCount == 0 {
+		return errors.New("no sensor could be deleted")
 	}
 
 	return nil
@@ -143,12 +146,15 @@ func (registry *mongodbSensorRegistry) DeleteSensor(sensorId uuid.UUID) error {
 
 func (registry *mongodbSensorRegistry) UpdateSensor(sensor *WeatherSensor) error {
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	_, err := registry.sensorCollection.ReplaceOne(ctx,
+	res, err := registry.sensorCollection.ReplaceOne(ctx,
 		bson.M{"id": sensor.Id},
 		sensor)
 	if err != nil {
 		log.Fatal(err)
 		return err
+	}
+	if res.MatchedCount == 0 || res.ModifiedCount == 0 {
+		return errors.New("no sensor could be updated")
 	}
 	return nil
 }
