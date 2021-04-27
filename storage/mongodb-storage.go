@@ -121,7 +121,7 @@ func (registry *mongodbSensorRegistry) GetSensors() ([]*WeatherSensor, error) {
 		return nil, err
 	}
 
-	var readData []*WeatherSensor
+	var readData []*WeatherSensor = make([]*WeatherSensor, 0)
 	if err = cursor.All(ctx, &readData); err != nil {
 		log.Fatal(err)
 		return nil, err
