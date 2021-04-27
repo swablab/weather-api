@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"weather-data/config"
 	"weather-data/storage"
 	"weather-data/weathersource"
 
 	"github.com/google/uuid"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
@@ -29,8 +31,11 @@ func NewRestAPI(connection string, weatherStorage storage.WeatherStorage, sensor
 
 //Start a new Rest-API instance
 func (api *weatherRestApi) Start() error {
-	handler := api.handleRequests()
-	return http.ListenAndServe(api.connection, handler)
+	router := api.handleRequests()
+
+	originsOk := handlers.AllowedOrigins([]string{config.RestConfiguration.AccessControlAllowOriginHeader})
+
+	return http.ListenAndServe(api.connection, handlers.CORS(originsOk)(router))
 }
 
 //Close the rest api

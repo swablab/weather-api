@@ -31,6 +31,10 @@ type MqttConfig struct {
 	AllowAnonymousAuthentication bool
 }
 
+type RestConfig struct {
+	AccessControlAllowOriginHeader string
+}
+
 var MongoConfiguration = MongoConfig{
 	Host:       getEnv("MONGO_HOST", "localhost:27017"),
 	Database:   getEnv("MONGO_DB", "weathersensors"),
@@ -54,6 +58,10 @@ var MqttConfiguration = MqttConfig{
 	PublishInterval:              getEnvDuration("MQTT_PUBLISH_INTERVALL", time.Millisecond*2500),
 	MinDistToLastValue:           getEnvDuration("MQTT_MIN_DIST_LAST_VALUE", time.Millisecond*250),
 	AllowAnonymousAuthentication: getEnvBool("MQTT_ANONYMOUS", false),
+}
+
+var RestConfiguration = RestConfig{
+	AccessControlAllowOriginHeader: getEnv("ACCESS_CONTROL_ALLOW_ORIGIN_HEADER", "*"),
 }
 
 var AllowUnregisteredSensors = getEnvBool("ALLOW_UNREGISTERED_SENSORS", false)
