@@ -35,7 +35,6 @@ type WeatherData struct {
 
 //NewRandomWeatherData creates random WeatherData
 func NewRandomWeatherData() *WeatherData {
-	rand.Seed(time.Now().UnixNano())
 	var data = new(WeatherData)
 	data.Values = make(map[SensorValueType]float64)
 	data.Values[Humidity] = rand.Float64() * 100
