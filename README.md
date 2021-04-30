@@ -32,8 +32,7 @@ MQTT_HOST | localhost:1883 | Hostadresse MQTT-Broker
 MQTT_TOPIC | sensor/# | MQTT-Topic, in welchem nach Wetterdaten geschaut wird
 MQTT_USER | mqtt | Username für MQTT
 MQTT_PASS | mqtt | Passwort für MQTT
-MQTT_PUBLISH_INTERVALL | 2500 | Intervall, nachdem über MQTT empfangene Wetterdaten in die DB geschrieben werden (in Millisekunden)
-MQTT_MIN_DIST_LAST_VALUE | 250 | Zeit, die Wetterdaten mindestens zurückgehalten werden, bevor diese in die DB geschrieben werden -> Innerhalb dieser Zeitspanne kann ein Wetterdatensatz noch durch andere Werte ergänzt werden(in Millisekunden)
+MQTT_PUBLISH_DELAY | 1000 | Innerhalb dieser Zeitspanne wird ein Wetterdatensatz noch durch weiter eintreffende Werte ergänzt. Danach wird der Datensatz veröffentlicht (in Millisekunden)
 MQTT_ANONYMOUS | false | Anonyme Anmeldung am MQTT-Broker verwenden (ohne Username und Passwort)
 ALLOW_UNREGISTERED_SENSORS | false | Wetterdaten nicht registrierter Sensoren erlauben
 

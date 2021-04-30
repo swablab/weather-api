@@ -26,8 +26,7 @@ type MqttConfig struct {
 	Topic                        string
 	Username                     string
 	Password                     string
-	PublishInterval              time.Duration
-	MinDistToLastValue           time.Duration
+	PublishDelay                 time.Duration
 	AllowAnonymousAuthentication bool
 }
 
@@ -55,8 +54,7 @@ var MqttConfiguration = MqttConfig{
 	Topic:                        getEnv("MQTT_TOPIC", "sensor/#"),
 	Username:                     getEnv("MQTT_USER", "mqtt"),
 	Password:                     getEnv("MQTT_PASS", "mqtt"),
-	PublishInterval:              getEnvDuration("MQTT_PUBLISH_INTERVALL", time.Millisecond*2500),
-	MinDistToLastValue:           getEnvDuration("MQTT_MIN_DIST_LAST_VALUE", time.Millisecond*250),
+	PublishDelay:                 getEnvDuration("MQTT_PUBLISH_DELAY", time.Second),
 	AllowAnonymousAuthentication: getEnvBool("MQTT_ANONYMOUS", false),
 }
 
