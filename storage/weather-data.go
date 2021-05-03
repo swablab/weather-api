@@ -67,7 +67,7 @@ func (data *WeatherData) OnlyQueriedValues(query *WeatherQuery) *WeatherData {
 func (data *WeatherData) ToMap() map[string]interface{} {
 	mappedData := map[string]interface{}{
 		SensorId:  data.SensorId.String(),
-		TimeStamp: data.TimeStamp.String(),
+		TimeStamp: data.TimeStamp.Format(time.RFC3339),
 	}
 
 	for sensorValueType, value := range data.Values {
