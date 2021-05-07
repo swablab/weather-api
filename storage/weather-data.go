@@ -2,6 +2,7 @@ package storage
 
 import (
 	"errors"
+	"math"
 	"math/rand"
 	"time"
 
@@ -128,6 +129,16 @@ func GetOnlyQueriedFields(dataPoints []*WeatherData, query *WeatherQuery) []*Wea
 	for _, data := range dataPoints {
 		data.OnlyQueriedValues(query)
 	}
+
+	if query.MaxDataPoints >= 0 && len(dataPoints) > query.MaxDataPoints {
+		var result = make([]*WeatherData, query.MaxDataPoints)
+		division := float64(len(dataPoints)) / float64(query.MaxDataPoints)
+		for i := 0; i < query.MaxDataPoints; i++ {
+			result[i] = dataPoints[int(math.Round(float64(i)*division))]
+		}
+		return result
+	}
+
 	return dataPoints
 }
 

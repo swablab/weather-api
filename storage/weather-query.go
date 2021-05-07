@@ -10,15 +10,17 @@ import (
 )
 
 type WeatherQuery struct {
-	Start    time.Time
-	End      time.Time
-	SensorId uuid.UUID
-	Values   map[SensorValueType]bool
+	Start         time.Time
+	End           time.Time
+	SensorId      uuid.UUID
+	MaxDataPoints int
+	Values        map[SensorValueType]bool
 }
 
 //NewWeatherQuery creates a new empty WeatherQuery
 func NewWeatherQuery() *WeatherQuery {
 	query := new(WeatherQuery)
+	query.MaxDataPoints = -1
 	query.Values = make(map[SensorValueType]bool)
 	return query
 }
@@ -38,6 +40,7 @@ func ParseFromUrlQuery(query url.Values) (*WeatherQuery, error) {
 
 	start := query.Get("start")
 	end := query.Get("end")
+	max := query.Get("maxDataPoints")
 
 	if len(start) != 0 {
 		if tval, err := time.Parse(time.RFC3339, start); err == nil {
@@ -51,6 +54,15 @@ func ParseFromUrlQuery(query url.Values) (*WeatherQuery, error) {
 	if len(end) != 0 {
 		if tval, err := time.Parse(time.RFC3339, end); err == nil {
 			result.End = tval
+		} else if err != nil {
+			fmt.Println(err)
+			return nil, err
+		}
+	}
+
+	if len(max) != 0 {
+		if tval, err := strconv.Atoi(max); err == nil {
+			result.MaxDataPoints = tval
 		} else if err != nil {
 			fmt.Println(err)
 			return nil, err
