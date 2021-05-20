@@ -4,28 +4,42 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
+	"time"
 	"weather-data/config"
 	"weather-data/storage"
 	"weather-data/weathersource"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
+var bearerTokenRegexPattern = "^(?i:Bearer\\s+)([A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+\\/=]*)$"
+
+var bearerTokenRegex *regexp.Regexp = regexp.MustCompile(bearerTokenRegexPattern)
+
+type customClaims struct {
+	Username string `json:"username"`
+	jwt.StandardClaims
+}
+
 type weatherRestApi struct {
 	connection     string
+	config         config.RestConfig
 	weaterStorage  storage.WeatherStorage
 	weatherSource  weathersource.WeatherSourceBase
 	sensorRegistry storage.SensorRegistry
 }
 
 //SetupAPI sets the REST-API up
-func NewRestAPI(connection string, weatherStorage storage.WeatherStorage, sensorRegistry storage.SensorRegistry) *weatherRestApi {
+func NewRestAPI(connection string, weatherStorage storage.WeatherStorage, sensorRegistry storage.SensorRegistry, config config.RestConfig) *weatherRestApi {
 	api := new(weatherRestApi)
 	api.connection = connection
 	api.weaterStorage = weatherStorage
 	api.sensorRegistry = sensorRegistry
+	api.config = config
 	return api
 }
 
@@ -33,7 +47,7 @@ func NewRestAPI(connection string, weatherStorage storage.WeatherStorage, sensor
 func (api *weatherRestApi) Start() error {
 	router := api.handleRequests()
 
-	originsOk := handlers.AllowedOrigins([]string{config.RestConfiguration.AccessControlAllowOriginHeader})
+	originsOk := handlers.AllowedOrigins([]string{api.config.AccessControlAllowOriginHeader})
 
 	return http.ListenAndServe(api.connection, handlers.CORS(originsOk)(router))
 }
@@ -48,10 +62,13 @@ func (api *weatherRestApi) handleRequests() *mux.Router {
 
 	router.HandleFunc("/", api.homePageHandler)
 
+	//random weather data
 	router.HandleFunc("/{_dummy:(?i)random}", api.randomWeatherHandler).Methods("GET")
 	router.HandleFunc("/{_dummy:(?i)randomlist}", api.randomWeatherListHandler).Methods("GET")
 
+	//sensor specific stuff
 	sensorRouter := router.PathPrefix("/{_dummy:(?i)sensor}").Subrouter()
+	sensorRouter.Use(api.IsAuthorized)
 
 	sensorRouter.HandleFunc("/{id}/{_dummy:(?i)weather-data}", api.getWeatherDataHandler).Methods("GET")
 	sensorRouter.HandleFunc("/{id}/{_dummy:(?i)weather-data}", api.addWeatherDataHandler).Methods("POST")
@@ -61,7 +78,13 @@ func (api *weatherRestApi) handleRequests() *mux.Router {
 	sensorRouter.HandleFunc("/{id}", api.updateWeatherSensorHandler).Methods("PUT")
 	sensorRouter.HandleFunc("/{id}", api.deleteWeatherSensorHandler).Methods("DELETE")
 
+	//registration
 	router.HandleFunc("/{_dummy:(?i)register/sensor}/{name}", api.registerWeatherSensorHandler).Methods("POST")
+
+	//token generation
+	if api.config.AllowTokenGeneration {
+		router.HandleFunc("/{_dummy:(?i)generateToken}", api.generateToken).Methods("GET")
+	}
 	return router
 }
 
@@ -81,6 +104,28 @@ func (api *weatherRestApi) randomWeatherListHandler(w http.ResponseWriter, r *ht
 	w.Header().Add("content-type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(storage.ToMap(datapoints))
+}
+
+func (api *weatherRestApi) generateToken(w http.ResponseWriter, r *http.Request) {
+	claims := customClaims{
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(time.Minute * 30).Unix(),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signedToken, err := token.SignedString([]byte(config.RestConfiguration.JwtTokenSecret))
+	if err != nil {
+		return
+	}
+
+	response := map[string]string{
+		"Autohrization": signedToken,
+	}
+
+	w.Header().Add("content-type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
 }
 
 func (api *weatherRestApi) getWeatherDataHandler(w http.ResponseWriter, r *http.Request) {
@@ -245,6 +290,41 @@ func (api *weatherRestApi) deleteWeatherSensorHandler(w http.ResponseWriter, r *
 
 func (api *weatherRestApi) homePageHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Welcome to the Weather API!")
+}
+
+func (api *weatherRestApi) IsAuthorized(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !api.config.UseTokenAuthorization {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		authorizationHeader := r.Header["Authorization"]
+		if authorizationHeader == nil {
+			http.Error(w, "no bearer token", http.StatusUnauthorized)
+			return
+		}
+
+		jwtFromHeader := bearerTokenRegex.FindStringSubmatch(authorizationHeader[0])[1]
+
+		token, err := jwt.ParseWithClaims(
+			jwtFromHeader,
+			&customClaims{},
+			func(token *jwt.Token) (interface{}, error) {
+				return []byte(api.config.JwtTokenSecret), nil
+			},
+		)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		if token.Valid {
+			next.ServeHTTP(w, r)
+			return
+		}
+	})
 }
 
 //AddNewWeatherDataCallback adds a new callbackMethod for incoming weather data

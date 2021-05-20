@@ -42,7 +42,7 @@ func main() {
 	weatherSource.AddNewWeatherDataCallback(handleNewWeatherData)
 
 	//setup a API -> REST
-	weatherAPI = api.NewRestAPI(":10000", weatherStorage, sensorRegistry)
+	weatherAPI = api.NewRestAPI(":10000", weatherStorage, sensorRegistry, config.RestConfiguration)
 	defer weatherAPI.Close()
 	weatherAPI.AddNewWeatherDataCallback(handleNewWeatherData)
 
