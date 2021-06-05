@@ -65,7 +65,7 @@ var RestConfiguration = RestConfig{
 	AccessControlAllowOriginHeader: getEnv("ACCESS_CONTROL_ALLOW_ORIGIN_HEADER", "*"),
 	UseTokenAuthorization:          getEnvBool("USE_TOKEN_AUTHORIZATION", false),
 	AllowTokenGeneration:           getEnvBool("ALLOW_TOKEN_GENERATION", false),
-	JwtTokenSecret:                 getEnv("JWT_TOKEN_SECRET", "jwt-token-secret"),
+	JwtTokenSecret:                 getEnv("JWT_TOKEN_SECRET", "my_token_string"),
 }
 
 var AllowUnregisteredSensors = getEnvBool("ALLOW_UNREGISTERED_SENSORS", false)

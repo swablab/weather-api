@@ -21,7 +21,8 @@ var bearerTokenRegexPattern = "^(?i:Bearer\\s+)([A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]
 var bearerTokenRegex *regexp.Regexp = regexp.MustCompile(bearerTokenRegexPattern)
 
 type customClaims struct {
-	Username string `json:"username"`
+	Username string   `json:"username"`
+	Roles    []string `json:"role"`
 	jwt.StandardClaims
 }
 
@@ -111,6 +112,8 @@ func (api *weatherRestApi) generateToken(w http.ResponseWriter, r *http.Request)
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(time.Minute * 30).Unix(),
 		},
+		Username: "Joel",
+		Roles:    []string{"role 1", "role 2"},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -307,9 +310,10 @@ func (api *weatherRestApi) IsAuthorized(next http.Handler) http.Handler {
 
 		jwtFromHeader := bearerTokenRegex.FindStringSubmatch(authorizationHeader[0])[1]
 
+		var claims customClaims
 		token, err := jwt.ParseWithClaims(
 			jwtFromHeader,
-			&customClaims{},
+			&claims,
 			func(token *jwt.Token) (interface{}, error) {
 				return []byte(api.config.JwtTokenSecret), nil
 			},
