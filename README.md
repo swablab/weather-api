@@ -1,3 +1,5 @@
+
+[![Go](https://github.com/swablab/weather-api/actions/workflows/go.yml/badge.svg)](https://github.com/swablab/weather-api/actions/workflows/go.yml)
 # weather-api
 
 Ziel des Projektes weather-api ist es, eine einfache API für die Erhebung von Wetterdaten zu entwickeln. Kleine, selbstgebaute Wetterstationen können ihre Messergebnisse an die weather-api senden. Dort werden diese Verarbeitet, persistiert und können später wieder abgefragt werden. 
