@@ -34,6 +34,7 @@ type RestConfig struct {
 	AccessControlAllowOriginHeader string
 	UseTokenAuthorization          bool
 	ValidateTokenUrl               string
+	JwtTokenSecret                 string
 }
 
 var MongoConfiguration = MongoConfig{
@@ -64,6 +65,7 @@ var RestConfiguration = RestConfig{
 	AccessControlAllowOriginHeader: getEnv("ACCESS_CONTROL_ALLOW_ORIGIN_HEADER", "*"),
 	UseTokenAuthorization:          getEnvBool("USE_TOKEN_AUTHORIZATION", false),
 	ValidateTokenUrl:               getEnv("JWT_TOKEN_VALIDATION_URL", "https://api.swablab.de/ldap/validateToken"),
+	JwtTokenSecret:                 getEnv("JWT_TOKEN_SECRET", "my_token_string"),
 }
 
 var AllowUnregisteredSensors = getEnvBool("ALLOW_UNREGISTERED_SENSORS", false)

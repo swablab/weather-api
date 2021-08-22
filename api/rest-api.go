@@ -3,16 +3,32 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"weather-data/config"
 	"weather-data/storage"
 	"weather-data/weathersource"
 
+	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
+
+var userIdHeader = "userid"
+
+var bearerTokenRegexPattern = "^(?i:Bearer\\s+)([A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+\\/=]*)$"
+
+var bearerTokenRegex *regexp.Regexp = regexp.MustCompile(bearerTokenRegexPattern)
+
+type UserClaims struct {
+	Uid      string   `json:"uid"`
+	Username string   `json:"username"`
+	Roles    []string `json:"role"`
+	jwt.StandardClaims
+}
 
 type weatherRestApi struct {
 	connection     string
@@ -66,9 +82,7 @@ func (api *weatherRestApi) handleRequests() *mux.Router {
 	sensorRouter.HandleFunc("/{id}", api.getWeatherSensorHandler).Methods("GET")
 	sensorRouter.HandleFunc("/{id}", api.updateWeatherSensorHandler).Methods("PUT")
 	sensorRouter.HandleFunc("/{id}", api.deleteWeatherSensorHandler).Methods("DELETE")
-
-	//registration
-	router.HandleFunc("/{_dummy:(?i)register/sensor}/{name}", api.registerWeatherSensorHandler).Methods("POST")
+	sensorRouter.HandleFunc("/{name}", api.registerWeatherSensorHandler).Methods("POST")
 
 	return router
 }
@@ -161,22 +175,22 @@ func (api *weatherRestApi) registerWeatherSensorHandler(w http.ResponseWriter, r
 		return
 	}
 
+	sensor.UserId = r.Header.Get(userIdHeader)
+	err = api.sensorRegistry.UpdateSensor(sensor)
+	if err != nil {
+		http.Error(w, "", http.StatusBadRequest)
+		return
+	}
+
 	w.Header().Add("content-type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(sensor)
 }
 
 func (api *weatherRestApi) getAllWeatherSensorHandler(w http.ResponseWriter, r *http.Request) {
-	var weatherSensors []*storage.WeatherSensor
-	var err error
+	userId := r.Header.Get(userIdHeader)
 
-	userId := r.URL.Query().Get("userId")
-
-	if len(userId) == 0 {
-		weatherSensors, err = api.sensorRegistry.GetSensors()
-	} else {
-		weatherSensors, err = api.sensorRegistry.GetSensorsOfUser(userId)
-	}
+	weatherSensors, err := api.sensorRegistry.GetSensorsOfUser(userId)
 
 	if err != nil {
 		http.Error(w, "", http.StatusNotFound)
@@ -225,6 +239,8 @@ func (api *weatherRestApi) updateWeatherSensorHandler(w http.ResponseWriter, r *
 		http.Error(w, "", http.StatusBadRequest)
 		return
 	}
+
+	sensor.UserId = r.Header.Get(userIdHeader)
 	sensor.Id = sensorId
 
 	exist, err := api.sensorRegistry.ExistSensor(sensorId)
@@ -288,6 +304,12 @@ func (api *weatherRestApi) IsAuthorized(next http.Handler) http.Handler {
 			return
 		}
 
+		_, err = api.parseToken(r.Header)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
 		if resp.StatusCode == http.StatusOK {
 			next.ServeHTTP(w, r)
 			return
@@ -295,6 +317,31 @@ func (api *weatherRestApi) IsAuthorized(next http.Handler) http.Handler {
 
 		http.Error(w, "", http.StatusUnauthorized)
 	})
+}
+
+func (api *weatherRestApi) parseToken(header http.Header) (*UserClaims, error) {
+	authorizationHeader, exists := header["Authorization"]
+	if !exists {
+		return nil, errors.New("missing authorization token")
+	}
+
+	jwtFromHeader := bearerTokenRegex.FindStringSubmatch(authorizationHeader[0])[1]
+
+	claims := new(UserClaims)
+
+	_, err := jwt.ParseWithClaims(
+		jwtFromHeader,
+		claims,
+		func(token *jwt.Token) (interface{}, error) {
+			return []byte(api.config.JwtTokenSecret), nil
+		},
+	)
+
+	if err == nil {
+		header.Add(userIdHeader, claims.Uid)
+	}
+
+	return claims, err
 }
 
 //AddNewWeatherDataCallback adds a new callbackMethod for incoming weather data
