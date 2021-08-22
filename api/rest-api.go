@@ -1,30 +1,18 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"regexp"
-	"time"
 	"weather-data/config"
 	"weather-data/storage"
 	"weather-data/weathersource"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
-
-var bearerTokenRegexPattern = "^(?i:Bearer\\s+)([A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+\\/=]*)$"
-
-var bearerTokenRegex *regexp.Regexp = regexp.MustCompile(bearerTokenRegexPattern)
-
-type customClaims struct {
-	Username string   `json:"username"`
-	Roles    []string `json:"role"`
-	jwt.StandardClaims
-}
 
 type weatherRestApi struct {
 	connection     string
@@ -82,10 +70,6 @@ func (api *weatherRestApi) handleRequests() *mux.Router {
 	//registration
 	router.HandleFunc("/{_dummy:(?i)register/sensor}/{name}", api.registerWeatherSensorHandler).Methods("POST")
 
-	//token generation
-	if api.config.AllowTokenGeneration {
-		router.HandleFunc("/{_dummy:(?i)generateToken}", api.generateToken).Methods("GET")
-	}
 	return router
 }
 
@@ -105,30 +89,6 @@ func (api *weatherRestApi) randomWeatherListHandler(w http.ResponseWriter, r *ht
 	w.Header().Add("content-type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(storage.ToMap(datapoints))
-}
-
-func (api *weatherRestApi) generateToken(w http.ResponseWriter, r *http.Request) {
-	claims := customClaims{
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Minute * 30).Unix(),
-		},
-		Username: "Joel",
-		Roles:    []string{"role 1", "role 2"},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signedToken, err := token.SignedString([]byte(config.RestConfiguration.JwtTokenSecret))
-	if err != nil {
-		return
-	}
-
-	response := map[string]string{
-		"Autohrization": signedToken,
-	}
-
-	w.Header().Add("content-type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
 }
 
 func (api *weatherRestApi) getWeatherDataHandler(w http.ResponseWriter, r *http.Request) {
@@ -304,32 +264,26 @@ func (api *weatherRestApi) IsAuthorized(next http.Handler) http.Handler {
 			return
 		}
 
-		authorizationHeader := r.Header["Authorization"]
-		if authorizationHeader == nil {
-			http.Error(w, "no bearer token", http.StatusUnauthorized)
-			return
-		}
-
-		jwtFromHeader := bearerTokenRegex.FindStringSubmatch(authorizationHeader[0])[1]
-
-		var claims customClaims
-		token, err := jwt.ParseWithClaims(
-			jwtFromHeader,
-			&claims,
-			func(token *jwt.Token) (interface{}, error) {
-				return []byte(api.config.JwtTokenSecret), nil
-			},
-		)
-
+		req, err := http.NewRequest(http.MethodGet, api.config.ValidateTokenUrl, &bytes.Buffer{})
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		if token.Valid {
+		req.Header = r.Header.Clone()
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if resp.StatusCode == http.StatusOK {
 			next.ServeHTTP(w, r)
 			return
 		}
+
+		http.Error(w, "", http.StatusUnauthorized)
 	})
 }
 

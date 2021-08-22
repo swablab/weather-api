@@ -33,8 +33,7 @@ type MqttConfig struct {
 type RestConfig struct {
 	AccessControlAllowOriginHeader string
 	UseTokenAuthorization          bool
-	AllowTokenGeneration           bool
-	JwtTokenSecret                 string
+	ValidateTokenUrl               string
 }
 
 var MongoConfiguration = MongoConfig{
@@ -64,8 +63,7 @@ var MqttConfiguration = MqttConfig{
 var RestConfiguration = RestConfig{
 	AccessControlAllowOriginHeader: getEnv("ACCESS_CONTROL_ALLOW_ORIGIN_HEADER", "*"),
 	UseTokenAuthorization:          getEnvBool("USE_TOKEN_AUTHORIZATION", false),
-	AllowTokenGeneration:           getEnvBool("ALLOW_TOKEN_GENERATION", false),
-	JwtTokenSecret:                 getEnv("JWT_TOKEN_SECRET", "my_token_string"),
+	ValidateTokenUrl:               getEnv("JWT_TOKEN_VALIDATION_URL", "https://api.swablab.de/ldap/validateToken"),
 }
 
 var AllowUnregisteredSensors = getEnvBool("ALLOW_UNREGISTERED_SENSORS", false)
