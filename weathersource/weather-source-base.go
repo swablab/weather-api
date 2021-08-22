@@ -13,12 +13,8 @@ func (source *WeatherSourceBase) AddNewWeatherDataCallback(callback NewWeatherDa
 }
 
 //NewWeatherData executes all newWeatherDataCallbackFuncs for this datapoint
-func (source *WeatherSourceBase) NewWeatherData(datapoint storage.WeatherData) error {
+func (source *WeatherSourceBase) NewWeatherData(datapoint storage.WeatherData) {
 	for _, callback := range source.newWeatherDataCallbackFuncs {
-		err := callback(datapoint)
-		if err != nil {
-			return err
-		}
+		callback(datapoint)
 	}
-	return nil
 }

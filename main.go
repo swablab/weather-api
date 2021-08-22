@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"weather-data/api"
@@ -54,12 +53,9 @@ func main() {
 	}
 }
 
-func handleNewWeatherData(wd storage.WeatherData) error {
+func handleNewWeatherData(wd storage.WeatherData) {
 	_, err := sensorRegistry.ResolveSensorById(wd.SensorId)
-	if !config.AllowUnregisteredSensors && err != nil {
-		log.Print("discarded invalid weatherdata")
-		return fmt.Errorf("could not resolve sensor")
+	if config.AllowUnregisteredSensors || err == nil {
+		weatherStorage.Save(wd)
 	}
-	weatherStorage.Save(wd)
-	return nil
 }

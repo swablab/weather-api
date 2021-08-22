@@ -135,6 +135,6 @@ func (source *mqttWeatherSource) AddNewWeatherDataCallback(callback NewWeatherDa
 	source.weatherSource.AddNewWeatherDataCallback(callback)
 }
 
-func (source *mqttWeatherSource) newWeatherData(datapoint storage.WeatherData) error {
-	return source.weatherSource.NewWeatherData(datapoint)
+func (source *mqttWeatherSource) newWeatherData(datapoint storage.WeatherData) {
+	source.weatherSource.NewWeatherData(datapoint)
 }

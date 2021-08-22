@@ -184,11 +184,7 @@ func (api *weatherRestApi) addWeatherDataHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
-	err = api.addNewWeatherData(*weatherData)
-	if err != nil {
-		http.Error(w, "", http.StatusBadRequest)
-		return
-	}
+	api.addNewWeatherData(*weatherData)
 
 	w.Header().Add("content-type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -336,6 +332,6 @@ func (api *weatherRestApi) AddNewWeatherDataCallback(callback weathersource.NewW
 	api.weatherSource.AddNewWeatherDataCallback(callback)
 }
 
-func (api *weatherRestApi) addNewWeatherData(weatherData storage.WeatherData) error {
-	return api.weatherSource.NewWeatherData(weatherData)
+func (api *weatherRestApi) addNewWeatherData(weatherData storage.WeatherData) {
+	api.weatherSource.NewWeatherData(weatherData)
 }
