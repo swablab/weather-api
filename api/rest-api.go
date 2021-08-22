@@ -257,6 +257,12 @@ func (api *weatherRestApi) updateWeatherSensorHandler(w http.ResponseWriter, r *
 	}
 	sensor.Id = sensorId
 
+	exist, err := api.sensorRegistry.ExistSensor(sensorId)
+	if !exist || err != nil {
+		http.Error(w, "", http.StatusNotFound)
+		return
+	}
+
 	err = api.sensorRegistry.UpdateSensor(&sensor)
 	if err != nil {
 		http.Error(w, "", http.StatusBadRequest)
