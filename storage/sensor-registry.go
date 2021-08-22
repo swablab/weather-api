@@ -10,6 +10,7 @@ type SensorRegistry interface {
 	DeleteSensor(uuid.UUID) error
 	UpdateSensor(*WeatherSensor) error
 	GetSensors() ([]*WeatherSensor, error)
+	GetSensorsOfUser(userId string) ([]*WeatherSensor, error)
 	Close() error
 }
 
@@ -17,6 +18,7 @@ type SensorRegistry interface {
 type WeatherSensor struct {
 	Name      string
 	Id        uuid.UUID
+	UserId    string
 	Location  string
 	Longitude float64
 	Latitude  float64

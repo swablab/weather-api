@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"log"
-	"time"
 	"weather-data/config"
 
 	"github.com/google/uuid"
@@ -15,7 +14,6 @@ import (
 )
 
 type mongodbSensorRegistry struct {
-	weatherSensors   []*WeatherSensor
 	sensorCollection *mongo.Collection
 	client           *mongo.Client
 }
@@ -32,14 +30,13 @@ func NewMongodbSensorRegistry(mongoCfg config.MongoConfig) (*mongodbSensorRegist
 
 	sensorRegistry.client = client
 
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	err = client.Connect(ctx)
+	err = client.Connect(context.Background())
 	if err != nil {
 		log.Fatal(err)
 		return nil, err
 	}
 
-	err = client.Ping(ctx, readpref.Primary())
+	err = client.Ping(context.Background(), readpref.Primary())
 	if err != nil {
 		log.Fatal(err)
 		return nil, err
@@ -65,32 +62,29 @@ func (registry *mongodbSensorRegistry) RegisterSensorByName(name string) (*Weath
 	sensor.Name = name
 	sensor.Id = uuid.New()
 
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	_, err = registry.sensorCollection.InsertOne(ctx, sensor)
+	_, err = registry.sensorCollection.InsertOne(context.Background(), sensor)
 
 	return sensor, err
 }
 
 func (registry *mongodbSensorRegistry) ExistSensorName(name string) (bool, error) {
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	cursor, err := registry.sensorCollection.Find(ctx, bson.M{"name": name})
+	cursor, err := registry.sensorCollection.Find(context.Background(), bson.M{"name": name})
 	if err != nil {
 		log.Fatal(err)
 		return false, err
 	}
 
-	return cursor.Next(ctx), nil
+	return cursor.Next(context.Background()), nil
 }
 
 func (registry *mongodbSensorRegistry) ResolveSensorById(sensorId uuid.UUID) (*WeatherSensor, error) {
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	cursor, err := registry.sensorCollection.Find(ctx, bson.M{"id": sensorId})
+	cursor, err := registry.sensorCollection.Find(context.Background(), bson.M{"id": sensorId})
 	if err != nil {
 		log.Fatal(err)
 		return nil, err
 	}
 
-	if !cursor.Next(ctx) {
+	if !cursor.Next(context.Background()) {
 		return nil, errors.New("sensor does not exist")
 	}
 
@@ -103,26 +97,40 @@ func (registry *mongodbSensorRegistry) ResolveSensorById(sensorId uuid.UUID) (*W
 }
 
 func (registry *mongodbSensorRegistry) ExistSensor(sensorId uuid.UUID) (bool, error) {
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	cursor, err := registry.sensorCollection.Find(ctx, bson.M{"id": sensorId})
+	cursor, err := registry.sensorCollection.Find(context.Background(), bson.M{"id": sensorId})
 	if err != nil {
 		log.Fatal(err)
 		return false, err
 	}
 
-	return cursor.Next(ctx), nil
+	return cursor.Next(context.Background()), nil
 }
 
 func (registry *mongodbSensorRegistry) GetSensors() ([]*WeatherSensor, error) {
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	cursor, err := registry.sensorCollection.Find(ctx, bson.M{})
+	cursor, err := registry.sensorCollection.Find(context.Background(), bson.M{})
 	if err != nil {
 		log.Fatal(err)
 		return nil, err
 	}
 
 	var readData []*WeatherSensor = make([]*WeatherSensor, 0)
-	if err = cursor.All(ctx, &readData); err != nil {
+	if err = cursor.All(context.Background(), &readData); err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
+
+	return readData, nil
+}
+
+func (registry *mongodbSensorRegistry) GetSensorsOfUser(userId string) ([]*WeatherSensor, error) {
+	cursor, err := registry.sensorCollection.Find(context.Background(), bson.M{"userid": userId})
+	if err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
+
+	var readData []*WeatherSensor = make([]*WeatherSensor, 0)
+	if err = cursor.All(context.Background(), &readData); err != nil {
 		log.Fatal(err)
 		return nil, err
 	}
@@ -131,8 +139,7 @@ func (registry *mongodbSensorRegistry) GetSensors() ([]*WeatherSensor, error) {
 }
 
 func (registry *mongodbSensorRegistry) DeleteSensor(sensorId uuid.UUID) error {
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	res, err := registry.sensorCollection.DeleteOne(ctx, bson.M{"id": sensorId})
+	res, err := registry.sensorCollection.DeleteOne(context.Background(), bson.M{"id": sensorId})
 	if err != nil {
 		log.Fatal(err)
 		return err
@@ -145,8 +152,8 @@ func (registry *mongodbSensorRegistry) DeleteSensor(sensorId uuid.UUID) error {
 }
 
 func (registry *mongodbSensorRegistry) UpdateSensor(sensor *WeatherSensor) error {
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	res, err := registry.sensorCollection.ReplaceOne(ctx,
+	res, err := registry.sensorCollection.ReplaceOne(
+		context.Background(),
 		bson.M{"id": sensor.Id},
 		sensor)
 	if err != nil {
@@ -160,7 +167,6 @@ func (registry *mongodbSensorRegistry) UpdateSensor(sensor *WeatherSensor) error
 }
 
 func (registry *mongodbSensorRegistry) Close() error {
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	err := registry.client.Disconnect(ctx)
+	err := registry.client.Disconnect(context.Background())
 	return err
 }

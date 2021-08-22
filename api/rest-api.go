@@ -167,7 +167,17 @@ func (api *weatherRestApi) registerWeatherSensorHandler(w http.ResponseWriter, r
 }
 
 func (api *weatherRestApi) getAllWeatherSensorHandler(w http.ResponseWriter, r *http.Request) {
-	weatherSensors, err := api.sensorRegistry.GetSensors()
+	var weatherSensors []*storage.WeatherSensor
+	var err error
+
+	userId := r.URL.Query().Get("userId")
+
+	if len(userId) == 0 {
+		weatherSensors, err = api.sensorRegistry.GetSensors()
+	} else {
+		weatherSensors, err = api.sensorRegistry.GetSensorsOfUser(userId)
+	}
+
 	if err != nil {
 		http.Error(w, "", http.StatusNotFound)
 		return
