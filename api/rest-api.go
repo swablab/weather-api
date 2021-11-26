@@ -120,13 +120,15 @@ func (api *weatherRestApi) getWeatherDataHandler(w http.ResponseWriter, r *http.
 	vars := mux.Vars(r)
 	id := vars["id"]
 
-	query, err := storage.ParseFromUrlQuery(r.URL.Query())
+	query, err := storage.ParseWeatherQuery(r.URL.Query())
 	if err != nil {
 		http.Error(w, "", http.StatusBadRequest)
 		return
 	}
 
-	query.SensorId, err = uuid.Parse(id)
+	sensorid, err := uuid.Parse(id)
+	query.SensorIds = append(query.SensorIds, sensorid)
+
 	if err != nil {
 		http.Error(w, "", http.StatusBadRequest)
 		return

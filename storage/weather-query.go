@@ -12,7 +12,7 @@ import (
 type WeatherQuery struct {
 	Start         time.Time
 	End           time.Time
-	SensorId      uuid.UUID
+	SensorIds     []uuid.UUID
 	MaxDataPoints int
 	Values        map[SensorValueType]bool
 }
@@ -28,13 +28,13 @@ func NewWeatherQuery() *WeatherQuery {
 func (query *WeatherQuery) Init() {
 	query.Start = time.Now().Add(-1 * time.Hour * 24 * 14)
 	query.End = time.Now()
-	query.SensorId = uuid.Nil
+	query.SensorIds = make([]uuid.UUID, 0)
 	for _, sensorValueType := range GetSensorValueTypes() {
 		query.Values[sensorValueType] = true
 	}
 }
 
-func ParseFromUrlQuery(query url.Values) (*WeatherQuery, error) {
+func ParseWeatherQuery(query url.Values) (*WeatherQuery, error) {
 	result := NewWeatherQuery()
 	result.Init()
 

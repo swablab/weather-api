@@ -61,6 +61,7 @@ func (storage *influxStorage) GetData(query *WeatherQuery) ([]*WeatherData, erro
 func (storage *influxStorage) createFluxQuery(query *WeatherQuery) string {
 	fields := ""
 	concat := ""
+	sensorIds := ""
 
 	for sensorValueType, value := range query.Values {
 		if value {
@@ -68,14 +69,25 @@ func (storage *influxStorage) createFluxQuery(query *WeatherQuery) string {
 			concat = "or"
 		}
 	}
+	concat = ""
+	for _, id := range query.SensorIds {
+		sensorIds = fmt.Sprintf("%v %v r[\"sensorId\"] == \"%v\"", sensorIds, concat, id)
+		concat = "or"
+	}
 
 	fromTemplate := fmt.Sprintf("from(bucket:\"%v\")", storage.config.Bucket)
 	rangeTemplate := fmt.Sprintf("|> range(start: %v, stop: %v)", query.Start.Format(time.RFC3339), query.End.Format(time.RFC3339))
 	measurementTemplate := fmt.Sprintf("|> filter(fn: (r) => r[\"_measurement\"] == \"%v\")", storage.measurement)
-	sensorIdsTemplate := fmt.Sprintf("|> filter(fn: (r) => r[\"sensorId\"] == \"%v\")", query.SensorId)
-	fields = fmt.Sprintf("|> filter(fn: (r) => %v )", strings.Trim(fields, " "))
+	sensorIdsTemplate := ""
+	if len(sensorIds) > 0 {
+		sensorIdsTemplate = fmt.Sprintf("|> filter(fn: (r) => %v )", strings.Trim(sensorIds, " "))
+	}
+	fieldsTemplate := ""
+	if len(fields) > 0 {
+		fieldsTemplate = fmt.Sprintf("|> filter(fn: (r) => %v )", strings.Trim(fields, " "))
+	}
 
-	fluxQuery := fmt.Sprintf("%v \n %v \n %v \n %v \n %v", fromTemplate, rangeTemplate, measurementTemplate, sensorIdsTemplate, fields)
+	fluxQuery := fmt.Sprintf("%v \n %v \n %v \n %v \n %v", fromTemplate, rangeTemplate, measurementTemplate, sensorIdsTemplate, fieldsTemplate)
 
 	return fluxQuery
 }
