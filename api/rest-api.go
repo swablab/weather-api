@@ -80,10 +80,10 @@ func (api *weatherRestApi) handleRequests() *mux.Router {
 	sensorRouter.HandleFunc("/{id}/{_dummy:(?i)weather-data}", api.addWeatherDataHandler).Methods("POST")
 
 	sensorRouter.HandleFunc("", api.getAllWeatherSensorHandler).Methods("GET")
+	sensorRouter.HandleFunc("", api.registerWeatherSensorHandler).Methods("POST")
 	sensorRouter.HandleFunc("/{id}", api.getWeatherSensorHandler).Methods("GET")
 	sensorRouter.HandleFunc("/{id}", api.updateWeatherSensorHandler).Methods("PUT")
 	sensorRouter.HandleFunc("/{id}", api.deleteWeatherSensorHandler).Methods("DELETE")
-	sensorRouter.HandleFunc("/{name}", api.registerWeatherSensorHandler).Methods("POST")
 
 	return router
 }
@@ -165,17 +165,18 @@ func (api *weatherRestApi) addWeatherDataHandler(w http.ResponseWriter, r *http.
 }
 
 func (api *weatherRestApi) registerWeatherSensorHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	name := vars["name"]
+	var err error
 
-	sensor, err := api.sensorRegistry.RegisterSensorByName(name)
+	sensor := new(storage.WeatherSensor)
+	sensor.UserId = r.Header.Get(userIdHeader)
+
+	err = json.NewDecoder(r.Body).Decode(sensor)
 	if err != nil {
 		http.Error(w, "", http.StatusBadRequest)
 		return
 	}
 
-	sensor.UserId = r.Header.Get(userIdHeader)
-	err = api.sensorRegistry.UpdateSensor(sensor)
+	sensor, err = api.sensorRegistry.RegisterSensor(sensor)
 	if err != nil {
 		http.Error(w, "", http.StatusBadRequest)
 		return
@@ -211,7 +212,7 @@ func (api *weatherRestApi) getWeatherSensorHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	weatherSensor, err := api.sensorRegistry.ResolveSensorById(sensorId)
+	weatherSensor, err := api.sensorRegistry.GetSensor(sensorId)
 	if err != nil {
 		http.Error(w, "", http.StatusNotFound)
 		return
@@ -232,23 +233,21 @@ func (api *weatherRestApi) updateWeatherSensorHandler(w http.ResponseWriter, r *
 		return
 	}
 
-	var sensor storage.WeatherSensor
-	err = json.NewDecoder(r.Body).Decode(&sensor)
+	sensor, err := api.sensorRegistry.GetSensor(sensorId)
+	if err != nil {
+		http.Error(w, "", http.StatusNotFound)
+		return
+	}
+
+	err = json.NewDecoder(r.Body).Decode(sensor)
 	if err != nil {
 		http.Error(w, "", http.StatusBadRequest)
 		return
 	}
 
-	sensor.UserId = r.Header.Get(userIdHeader)
 	sensor.Id = sensorId
 
-	exist, err := api.sensorRegistry.ExistSensor(sensorId)
-	if !exist || err != nil {
-		http.Error(w, "", http.StatusNotFound)
-		return
-	}
-
-	err = api.sensorRegistry.UpdateSensor(&sensor)
+	err = api.sensorRegistry.UpdateSensor(sensor)
 	if err != nil {
 		http.Error(w, "", http.StatusBadRequest)
 		return
@@ -303,12 +302,12 @@ func (api *weatherRestApi) IsAuthorized(next http.Handler) http.Handler {
 			return
 		}
 
-		_, err = api.parseToken(r.Header)
+		claims, err := api.parseToken(r.Header)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-
+		r.Header.Set(userIdHeader, claims.Uid)
 		if resp.StatusCode == http.StatusOK {
 			next.ServeHTTP(w, r)
 			return
@@ -335,11 +334,6 @@ func (api *weatherRestApi) parseToken(header http.Header) (*UserClaims, error) {
 			return []byte(api.config.JwtTokenSecret), nil
 		},
 	)
-
-	if err == nil {
-		header.Add(userIdHeader, claims.Uid)
-	}
-
 	return claims, err
 }
 

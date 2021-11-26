@@ -32,13 +32,13 @@ func NewMongodbSensorRegistry(mongoCfg config.MongoConfig) (*mongodbSensorRegist
 
 	err = client.Connect(context.Background())
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 		return nil, err
 	}
 
 	err = client.Ping(context.Background(), readpref.Primary())
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 		return nil, err
 	}
 
@@ -50,19 +50,9 @@ func NewMongodbSensorRegistry(mongoCfg config.MongoConfig) (*mongodbSensorRegist
 	return sensorRegistry, nil
 }
 
-func (registry *mongodbSensorRegistry) RegisterSensorByName(name string) (*WeatherSensor, error) {
-	exist, err := registry.ExistSensorName(name)
-	if err != nil {
-		return nil, err
-	}
-	if exist {
-		return nil, errors.New("sensorname already exists")
-	}
-	sensor := new(WeatherSensor)
-	sensor.Name = name
+func (registry *mongodbSensorRegistry) RegisterSensor(sensor *WeatherSensor) (*WeatherSensor, error) {
 	sensor.Id = uuid.New()
-
-	_, err = registry.sensorCollection.InsertOne(context.Background(), sensor)
+	_, err := registry.sensorCollection.InsertOne(context.Background(), sensor)
 
 	return sensor, err
 }
@@ -70,17 +60,17 @@ func (registry *mongodbSensorRegistry) RegisterSensorByName(name string) (*Weath
 func (registry *mongodbSensorRegistry) ExistSensorName(name string) (bool, error) {
 	cursor, err := registry.sensorCollection.Find(context.Background(), bson.M{"name": name})
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 		return false, err
 	}
 
 	return cursor.Next(context.Background()), nil
 }
 
-func (registry *mongodbSensorRegistry) ResolveSensorById(sensorId uuid.UUID) (*WeatherSensor, error) {
+func (registry *mongodbSensorRegistry) GetSensor(sensorId uuid.UUID) (*WeatherSensor, error) {
 	cursor, err := registry.sensorCollection.Find(context.Background(), bson.M{"id": sensorId})
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 		return nil, err
 	}
 
@@ -90,7 +80,7 @@ func (registry *mongodbSensorRegistry) ResolveSensorById(sensorId uuid.UUID) (*W
 
 	var sensor *WeatherSensor
 	if err = cursor.Decode(&sensor); err != nil {
-		log.Fatal(err)
+		log.Print(err)
 		return nil, err
 	}
 	return sensor, nil
@@ -99,7 +89,7 @@ func (registry *mongodbSensorRegistry) ResolveSensorById(sensorId uuid.UUID) (*W
 func (registry *mongodbSensorRegistry) ExistSensor(sensorId uuid.UUID) (bool, error) {
 	cursor, err := registry.sensorCollection.Find(context.Background(), bson.M{"id": sensorId})
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 		return false, err
 	}
 
@@ -109,13 +99,13 @@ func (registry *mongodbSensorRegistry) ExistSensor(sensorId uuid.UUID) (bool, er
 func (registry *mongodbSensorRegistry) GetSensors() ([]*WeatherSensor, error) {
 	cursor, err := registry.sensorCollection.Find(context.Background(), bson.M{})
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 		return nil, err
 	}
 
 	var readData []*WeatherSensor = make([]*WeatherSensor, 0)
 	if err = cursor.All(context.Background(), &readData); err != nil {
-		log.Fatal(err)
+		log.Print(err)
 		return nil, err
 	}
 
@@ -125,13 +115,13 @@ func (registry *mongodbSensorRegistry) GetSensors() ([]*WeatherSensor, error) {
 func (registry *mongodbSensorRegistry) GetSensorsOfUser(userId string) ([]*WeatherSensor, error) {
 	cursor, err := registry.sensorCollection.Find(context.Background(), bson.M{"userid": userId})
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 		return nil, err
 	}
 
 	var readData []*WeatherSensor = make([]*WeatherSensor, 0)
 	if err = cursor.All(context.Background(), &readData); err != nil {
-		log.Fatal(err)
+		log.Print(err)
 		return nil, err
 	}
 
@@ -141,7 +131,7 @@ func (registry *mongodbSensorRegistry) GetSensorsOfUser(userId string) ([]*Weath
 func (registry *mongodbSensorRegistry) DeleteSensor(sensorId uuid.UUID) error {
 	res, err := registry.sensorCollection.DeleteOne(context.Background(), bson.M{"id": sensorId})
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 		return err
 	}
 	if res.DeletedCount == 0 {
@@ -157,7 +147,7 @@ func (registry *mongodbSensorRegistry) UpdateSensor(sensor *WeatherSensor) error
 		bson.M{"id": sensor.Id},
 		sensor)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 		return err
 	}
 	if res.MatchedCount == 0 || res.ModifiedCount == 0 {

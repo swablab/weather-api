@@ -3,14 +3,14 @@ package storage
 import "github.com/google/uuid"
 
 type SensorRegistry interface {
-	RegisterSensorByName(string) (*WeatherSensor, error)
+	RegisterSensor(sensor *WeatherSensor) (*WeatherSensor, error)
 	ExistSensor(sensorId uuid.UUID) (bool, error)
 	ExistSensorName(name string) (bool, error)
-	ResolveSensorById(uuid.UUID) (*WeatherSensor, error)
-	DeleteSensor(uuid.UUID) error
-	UpdateSensor(*WeatherSensor) error
+	GetSensor(uuid.UUID) (*WeatherSensor, error)
 	GetSensors() ([]*WeatherSensor, error)
 	GetSensorsOfUser(userId string) ([]*WeatherSensor, error)
+	UpdateSensor(*WeatherSensor) error
+	DeleteSensor(uuid.UUID) error
 	Close() error
 }
 

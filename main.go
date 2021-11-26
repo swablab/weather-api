@@ -50,7 +50,7 @@ func main() {
 }
 
 func handleNewWeatherData(wd storage.WeatherData) {
-	_, err := sensorRegistry.ResolveSensorById(wd.SensorId)
+	_, err := sensorRegistry.GetSensor(wd.SensorId)
 	if config.AllowUnregisteredSensors || err == nil {
 		weatherStorage.Save(wd)
 	}
