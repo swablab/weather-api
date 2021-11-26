@@ -24,7 +24,7 @@ Key | Default-Wert  | Auswirkung
 MONGO_HOST | localhost:27017 | Hostadresse mongodb
 MONGO_DB   | weathersensors  | DB-Namen mongodb
 MONGO_USER | admin | Username mongodb
-MONGO_PASS | admin | Passwort mongodb
+MONGO_PASSWORD | admin | Passwort mongodb
 MONGO_COLLECTION | sensors | mongodb-Collection, in der Wettersensoren gespeichert werden
 INFLUX_HOST | localhost:8086 | Hostadresse influxdb
 INFLUX_TOKEN | token | Token für influxDB
@@ -33,13 +33,13 @@ INFLUX_BUCKET | bucket_name | Bucket-Namen, in dem die Wetterdaten abgespeichert
 MQTT_HOST | localhost:1883 | Hostadresse MQTT-Broker
 MQTT_TOPIC | sensor/# | MQTT-Topic, in welchem nach Wetterdaten geschaut wird
 MQTT_USER | mqtt | Username für MQTT
-MQTT_PASS | mqtt | Passwort für MQTT
+MQTT_PASSWORD | mqtt | Passwort für MQTT
 MQTT_PUBLISH_DELAY | 1000 | Innerhalb dieser Zeitspanne wird ein Wetterdatensatz noch durch weiter eintreffende Werte ergänzt. Danach wird der Datensatz veröffentlicht (in Millisekunden)
 MQTT_ANONYMOUS | false | Anonyme Anmeldung am MQTT-Broker verwenden (ohne Username und Passwort)
+ACCESS_CONTROL_ALLOW_ORIGIN_HEADER | * | CORS-Header
+USE_JWT_TOKEN_VALIDATION_URL | false | Tokenvalidierung an einer URL
+JWT_TOKEN_VALIDATION_URL | localhost:5000 | URL für die JWT-Token Validierung
+USE_JWT_TOKEN_VALIDATION_SECRET | true | Tokenvalidierung mit der Angabe eines Secrets
+JWT_TOKEN_VALIDATION_SECRET | token_Secret_value | Secret um die Signatur des JWT-Tokens zu überprüfen
 ALLOW_UNREGISTERED_SENSORS | false | Wetterdaten nicht registrierter Sensoren erlauben
 
-
-## Applikation lokal ausführen
-
-Eine lokal ausgeführte Test-Instanz der Wetter-API muss mit URLs, Tokens und ähnlichem über Umgebungsvariablen konfiguriert werden.  
-Das PowerShell-Skript `run_default.ps1` ist eine Vorlage für den start einer eigenen Instanz, lediglich die Umgebungsvariablen müsssen hierzu angepasst werden. Am besten wird der Inhalt dieses Skriptes in ein weiteres Skript (z.B. `run.ps1`) kopiert. Dieses wird von Git ignoriert, geheime Zugangsdaten (z.B. zu MQTT Broker, InfluxDB) werden so nicht ins Git-Repository eingefügt.

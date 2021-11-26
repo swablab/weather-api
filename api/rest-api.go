@@ -24,10 +24,19 @@ var bearerTokenRegexPattern = "^(?i:Bearer\\s+)([A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]
 
 var bearerTokenRegex *regexp.Regexp = regexp.MustCompile(bearerTokenRegexPattern)
 
-type UserClaims struct {
+type User struct {
 	Uid      string   `json:"uid"`
 	Username string   `json:"username"`
 	Roles    []string `json:"role"`
+}
+
+type ValidationResponse struct {
+	ValidationSuccessfull bool
+	Identity              User
+}
+
+type UserClaims struct {
+	User
 	jwt.StandardClaims
 }
 
@@ -74,7 +83,8 @@ func (api *weatherRestApi) handleRequests() *mux.Router {
 
 	//sensor specific stuff
 	sensorRouter := router.PathPrefix("/{_dummy:(?i)sensor}").Subrouter()
-	sensorRouter.Use(api.IsAuthorized)
+	sensorRouter.Use(api.UseJwtTokenValidationSecret)
+	sensorRouter.Use(api.UseJwtTokenValidationUrl)
 
 	sensorRouter.HandleFunc("/{id}/{_dummy:(?i)weather-data}", api.getWeatherDataHandler).Methods("GET")
 	sensorRouter.HandleFunc("/{id}/{_dummy:(?i)weather-data}", api.addWeatherDataHandler).Methods("POST")
@@ -281,14 +291,13 @@ func (api *weatherRestApi) homePageHandler(w http.ResponseWriter, r *http.Reques
 	fmt.Fprintf(w, "Welcome to the Weather API!")
 }
 
-func (api *weatherRestApi) IsAuthorized(next http.Handler) http.Handler {
+func (api *weatherRestApi) UseJwtTokenValidationUrl(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !api.config.UseTokenAuthorization {
+		if !api.config.UseJwtTokenValidationUrl {
 			next.ServeHTTP(w, r)
 			return
 		}
-
-		req, err := http.NewRequest(http.MethodGet, api.config.ValidateTokenUrl, &bytes.Buffer{})
+		req, err := http.NewRequest(http.MethodGet, api.config.JwtTokenValidationUrl, &bytes.Buffer{})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -302,18 +311,35 @@ func (api *weatherRestApi) IsAuthorized(next http.Handler) http.Handler {
 			return
 		}
 
-		claims, err := api.parseToken(r.Header)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		r.Header.Set(userIdHeader, claims.Uid)
-		if resp.StatusCode == http.StatusOK {
-			next.ServeHTTP(w, r)
+		if resp.StatusCode != http.StatusOK {
+			http.Error(w, resp.Status, resp.StatusCode)
 			return
 		}
 
-		http.Error(w, "", http.StatusUnauthorized)
+		validation := new(ValidationResponse)
+		err = json.NewDecoder(resp.Body).Decode(validation)
+		if err != nil || !validation.ValidationSuccessfull {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		r.Header.Set(userIdHeader, validation.Identity.Uid)
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (api *weatherRestApi) UseJwtTokenValidationSecret(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !api.config.UseJwtTokenValidationSecret {
+			next.ServeHTTP(w, r)
+			return
+		}
+		claims, err := api.parseToken(r.Header)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+		r.Header.Set(userIdHeader, claims.Uid)
+		next.ServeHTTP(w, r)
 	})
 }
 
@@ -331,7 +357,7 @@ func (api *weatherRestApi) parseToken(header http.Header) (*UserClaims, error) {
 		jwtFromHeader,
 		claims,
 		func(token *jwt.Token) (interface{}, error) {
-			return []byte(api.config.JwtTokenSecret), nil
+			return []byte(api.config.JwtTokenValidationSecret), nil
 		},
 	)
 	return claims, err

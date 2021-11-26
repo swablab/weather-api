@@ -32,16 +32,18 @@ type MqttConfig struct {
 
 type RestConfig struct {
 	AccessControlAllowOriginHeader string
-	UseTokenAuthorization          bool
-	ValidateTokenUrl               string
-	JwtTokenSecret                 string
+	Insecure                       bool
+	UseJwtTokenValidationUrl       bool
+	JwtTokenValidationUrl          string
+	UseJwtTokenValidationSecret    bool
+	JwtTokenValidationSecret       string
 }
 
 var MongoConfiguration = MongoConfig{
 	Host:       getEnv("MONGO_HOST", "localhost:27017"),
 	Database:   getEnv("MONGO_DB", "weathersensors"),
 	Username:   getEnv("MONGO_USER", "admin"),
-	Password:   getEnv("MONGO_PASS", "admin"),
+	Password:   getEnv("MONGO_PASSWORD", "admin"),
 	Collection: getEnv("MONGO_COLLECTION", "sensors"),
 }
 
@@ -56,16 +58,17 @@ var MqttConfiguration = MqttConfig{
 	Host:                         getEnv("MQTT_HOST", "localhost:1883"),
 	Topic:                        getEnv("MQTT_TOPIC", "sensor/#"),
 	Username:                     getEnv("MQTT_USER", "mqtt"),
-	Password:                     getEnv("MQTT_PASS", "mqtt"),
+	Password:                     getEnv("MQTT_PASSWORD", "mqtt"),
 	PublishDelay:                 getEnvDuration("MQTT_PUBLISH_DELAY", time.Second),
 	AllowAnonymousAuthentication: getEnvBool("MQTT_ANONYMOUS", false),
 }
 
 var RestConfiguration = RestConfig{
 	AccessControlAllowOriginHeader: getEnv("ACCESS_CONTROL_ALLOW_ORIGIN_HEADER", "*"),
-	UseTokenAuthorization:          getEnvBool("USE_TOKEN_AUTHORIZATION", false),
-	ValidateTokenUrl:               getEnv("JWT_TOKEN_VALIDATION_URL", "https://api.swablab.de/ldap/validateToken"),
-	JwtTokenSecret:                 getEnv("JWT_TOKEN_SECRET", "my_token_string"),
+	UseJwtTokenValidationUrl:       getEnvBool("USE_JWT_TOKEN_VALIDATION_URL", false),
+	JwtTokenValidationUrl:          getEnv("JWT_TOKEN_VALIDATION_URL", "localhost:5000"),
+	UseJwtTokenValidationSecret:    getEnvBool("USE_JWT_TOKEN_VALIDATION_SECRET", true),
+	JwtTokenValidationSecret:       getEnv("JWT_TOKEN_VALIDATION_SECRET", "my_token_string"),
 }
 
 var AllowUnregisteredSensors = getEnvBool("ALLOW_UNREGISTERED_SENSORS", false)
@@ -84,16 +87,6 @@ func getEnvBool(key string, fallback bool) bool {
 	if value, ok := os.LookupEnv(key); ok {
 		if bValue, err := strconv.ParseBool(value); err == nil {
 			return bValue
-		}
-	}
-
-	return fallback
-}
-
-func getEnvInt(key string, fallback int64) int64 {
-	if value, ok := os.LookupEnv(key); ok {
-		if iValue, err := strconv.ParseInt(value, 10, 64); err == nil {
-			return iValue
 		}
 	}
 
