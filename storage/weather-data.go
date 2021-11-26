@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"errors"
 	"math"
 	"math/rand"
 	"time"
@@ -79,44 +78,35 @@ func (data *WeatherData) ToMap() map[string]interface{} {
 }
 
 //FromMap converts a map[string]interface{} to WeatherData
-func FromMap(value map[string]interface{}) (*WeatherData, error) {
+func FromMap(values map[string]interface{}) (*WeatherData, error) {
 	var data = new(WeatherData)
 	data.Values = make(map[SensorValueType]float64)
 	var err error
 
-	copy := make(map[string]interface{})
-	for key, value := range value {
-		copy[key] = value
-	}
-
-	_, exists := copy[SensorId]
-	idString, ok := copy[SensorId].(string)
-	if exists && !ok {
-		return nil, errors.New("sensorId must be of type string")
-	}
-
-	if exists {
-		data.SensorId, err = uuid.Parse(idString)
-		if err != nil {
-			return nil, err
-		}
-		delete(copy, SensorId)
-	}
-
-	timeStampString, ok := copy[TimeStamp].(string)
-	if !ok {
-		return nil, errors.New("timeStamp must be of type string")
-	}
-	data.TimeStamp, err = time.Parse(time.RFC3339, timeStampString)
-	if err != nil {
-		return nil, err
-	}
-	delete(copy, TimeStamp)
-
-	for key, val := range copy {
-		switch v := val.(type) {
+	for key, val := range values {
+		switch value := val.(type) {
 		case float64:
-			data.Values[SensorValueType(key)] = float64(v)
+			data.Values[SensorValueType(key)] = float64(value)
+		case string:
+			if key == SensorId {
+				data.SensorId, err = uuid.Parse(value)
+				if err != nil {
+					return nil, err
+				}
+			} else if key == TimeStamp {
+				data.TimeStamp, err = time.Parse(time.RFC3339, value)
+				if err != nil {
+					return nil, err
+				}
+			}
+		case uuid.UUID:
+			if key == SensorId {
+				data.SensorId = value
+			}
+		case time.Time:
+			if key == TimeStamp {
+				data.TimeStamp = value
+			}
 		default:
 		}
 	}

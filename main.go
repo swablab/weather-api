@@ -21,21 +21,18 @@ func main() {
 	var err error
 	if sensorRegistry, err = storage.NewMongodbSensorRegistry(config.MongoConfiguration); err != nil {
 		log.Fatal(err)
-		os.Exit(1)
 	}
 	defer sensorRegistry.Close()
 
 	//setup a new weatherstorage -> InfluxDB
 	if weatherStorage, err = storage.NewInfluxStorage(config.InfluxConfiguration); err != nil {
 		log.Fatal(err)
-		os.Exit(1)
 	}
 	defer weatherStorage.Close()
 
 	//setup new weatherData source -> mqtt
 	if weatherSource, err = weathersource.NewMqttSource(config.MqttConfiguration); err != nil {
 		log.Fatal(err)
-		os.Exit(1)
 	}
 	defer weatherSource.Close()
 	weatherSource.AddNewWeatherDataCallback(handleNewWeatherData)
@@ -45,12 +42,11 @@ func main() {
 	defer weatherAPI.Close()
 	weatherAPI.AddNewWeatherDataCallback(handleNewWeatherData)
 
-	log.Print("Application is running")
 	err = weatherAPI.Start()
 	if err != nil {
 		log.Fatal(err)
-		os.Exit(1)
 	}
+	log.Print("Application is running")
 }
 
 func handleNewWeatherData(wd storage.WeatherData) {

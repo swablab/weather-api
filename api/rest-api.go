@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"time"
 	"weather-data/config"
 	"weather-data/storage"
 	"weather-data/weathersource"
@@ -144,15 +145,13 @@ func (api *weatherRestApi) addWeatherDataHandler(w http.ResponseWriter, r *http.
 		http.Error(w, "", http.StatusBadRequest)
 		return
 	}
-	delete(data, "sensorId")
 
-	weatherData, err := storage.FromMap(data)
-	if err != nil {
-		http.Error(w, "", http.StatusBadRequest)
-		return
+	data[storage.SensorId] = id
+	if _, containsTimeStamp := data[storage.TimeStamp]; !containsTimeStamp {
+		data[storage.TimeStamp] = time.Now()
 	}
 
-	weatherData.SensorId, err = uuid.Parse(id)
+	weatherData, err := storage.FromMap(data)
 	if err != nil {
 		http.Error(w, "", http.StatusBadRequest)
 		return
