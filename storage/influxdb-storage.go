@@ -31,7 +31,7 @@ func NewInfluxStorage(cfg config.InfluxConfig) (*influxStorage, error) {
 }
 
 //Save WeatherData to InfluxDB
-func (storage *influxStorage) Save(data WeatherData) error {
+func (storage *influxStorage) Save(data *WeatherData) error {
 	tags := map[string]string{
 		"sensorId": data.SensorId.String()}
 

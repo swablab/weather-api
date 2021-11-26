@@ -32,10 +32,10 @@ type UserClaims struct {
 }
 
 type weatherRestApi struct {
+	weathersource.WeatherSourceBase
 	connection     string
 	config         config.RestConfig
 	weaterStorage  storage.WeatherStorage
-	weatherSource  weathersource.WeatherSourceBase
 	sensorRegistry storage.SensorRegistry
 }
 
@@ -157,7 +157,7 @@ func (api *weatherRestApi) addWeatherDataHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
-	api.addNewWeatherData(*weatherData)
+	api.NewWeatherData(weatherData)
 
 	w.Header().Add("content-type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -335,13 +335,4 @@ func (api *weatherRestApi) parseToken(header http.Header) (*UserClaims, error) {
 		},
 	)
 	return claims, err
-}
-
-//AddNewWeatherDataCallback adds a new callbackMethod for incoming weather data
-func (api *weatherRestApi) AddNewWeatherDataCallback(callback weathersource.NewWeatherDataCallbackFunc) {
-	api.weatherSource.AddNewWeatherDataCallback(callback)
-}
-
-func (api *weatherRestApi) addNewWeatherData(weatherData storage.WeatherData) {
-	api.weatherSource.NewWeatherData(weatherData)
 }

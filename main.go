@@ -35,23 +35,24 @@ func main() {
 		log.Fatal(err)
 	}
 	defer weatherSource.Close()
-	weatherSource.AddNewWeatherDataCallback(handleNewWeatherData)
+	weatherSource.OnNewWeatherData(handleNewWeatherData)
 
 	//setup a API -> REST
 	weatherAPI = api.NewRestAPI(":10000", weatherStorage, sensorRegistry, config.RestConfiguration)
 	defer weatherAPI.Close()
-	weatherAPI.AddNewWeatherDataCallback(handleNewWeatherData)
+	weatherAPI.OnNewWeatherData(handleNewWeatherData)
 
+	log.Print("Application is running")
 	err = weatherAPI.Start()
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Print("Application is running")
 }
 
-func handleNewWeatherData(wd storage.WeatherData) {
-	_, err := sensorRegistry.GetSensor(wd.SensorId)
-	if config.AllowUnregisteredSensors || err == nil {
+func handleNewWeatherData(wd *storage.WeatherData) {
+	if config.AllowUnregisteredSensors {
+		weatherStorage.Save(wd)
+	} else if exist, err := sensorRegistry.ExistSensor(wd.SensorId); err == nil && exist {
 		weatherStorage.Save(wd)
 	}
 }

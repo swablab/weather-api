@@ -20,9 +20,9 @@ var regexTopic *regexp.Regexp = regexp.MustCompile(mqttTopicRegexPattern)
 var channelBufferSize = 10
 
 type mqttWeatherSource struct {
+	WeatherSourceBase
 	config                   config.MqttConfig
 	mqttClient               mqtt.Client
-	weatherSource            WeatherSourceBase
 	activeSensorMeasurements map[uuid.UUID](chan map[storage.SensorValueType]float64)
 	sensorMutex              sync.RWMutex
 }
@@ -127,14 +127,5 @@ func (source *mqttWeatherSource) publishSensorMeasurement(sensorId uuid.UUID, ch
 		}
 	}
 
-	source.newWeatherData(*weatherData)
-}
-
-//AddNewWeatherDataCallback adds a new callbackMethod for incoming weather data
-func (source *mqttWeatherSource) AddNewWeatherDataCallback(callback NewWeatherDataCallbackFunc) {
-	source.weatherSource.AddNewWeatherDataCallback(callback)
-}
-
-func (source *mqttWeatherSource) newWeatherData(datapoint storage.WeatherData) {
-	source.weatherSource.NewWeatherData(datapoint)
+	source.NewWeatherData(weatherData)
 }
